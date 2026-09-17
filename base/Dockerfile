@@ -59,7 +59,9 @@ ENV LD_LIBRARY_PATH="/opt/rocm/lib" \
 # The lemonade user (UID 10001, created by the upstream image) needs to be a
 # member of `render`/`video` so it can access /dev/kfd and /dev/dri when the
 # host passes those devices through with `docker run --device=...`.
-RUN usermod -aG render,video lemonade
+RUN groupadd -f render \
+    && groupadd -f video \
+    && usermod -aG render,video lemonade
 
 # --- generic config-seeding entrypoint --------------------------------------
 COPY docker-entrypoint.sh /usr/local/bin/lemonade-entrypoint
