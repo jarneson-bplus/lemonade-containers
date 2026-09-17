@@ -34,7 +34,9 @@ RUN test -n "${TURBOQUANT_VERSION}" || (echo "TURBOQUANT_VERSION build-arg is re
     && test -n "${TURBOQUANT_ASSET}" || (echo "TURBOQUANT_ASSET build-arg is required" >&2 && false) \
     && test -n "${TURBOQUANT_SHA256}" || (echo "TURBOQUANT_SHA256 build-arg is required" >&2 && false)
 
-RUN usermod -aG render,video lemonade
+RUN groupadd -f render \
+    && groupadd -f video \
+    && usermod -aG render,video lemonade
 
 RUN mkdir -p /opt/lemonade/custom-bin/turboquant/vulkan \
     && cd /tmp \

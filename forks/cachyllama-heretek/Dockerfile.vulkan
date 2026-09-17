@@ -32,7 +32,9 @@ RUN test -n "${CACHYLLAMA_VERSION}" || (echo "CACHYLLAMA_VERSION build-arg is re
     && test -n "${CACHYLLAMA_ASSET}" || (echo "CACHYLLAMA_ASSET build-arg is required" >&2 && false) \
     && test -n "${CACHYLLAMA_SHA256}" || (echo "CACHYLLAMA_SHA256 build-arg is required" >&2 && false)
 
-RUN usermod -aG render,video lemonade
+RUN groupadd -f render \
+    && groupadd -f video \
+    && usermod -aG render,video lemonade
 
 RUN mkdir -p /opt/lemonade/custom-bin/cachyllama/vulkan \
     && cd /tmp \
