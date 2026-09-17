@@ -24,4 +24,4 @@ while IFS= read -r image; do
     "${build_args[@]}" \
     "$context"
   echo "::endgroup::"
-done < <(jq -c '.images[]' "$manifest")
+done < <(.github/scripts/manifest-images-with-paths.sh "$manifest" | jq -c '.[]')

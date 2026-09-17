@@ -66,14 +66,15 @@ jobs:
           {
             echo "release_prefix=${release_prefix}"
             echo "has_release_prefix=${has_release_prefix}"
-            echo "base_package=$(jq -r '.images[] | select(.key == "base").package' .github/image-matrix.json)"
-            echo "base_context=$(jq -r '.images[] | select(.key == "base").context' .github/image-matrix.json)"
-            echo "base_dockerfile=$(jq -r '.images[] | select(.key == "base").dockerfile' .github/image-matrix.json)"
-            echo "base_default_tag=$(jq -r '.images[] | select(.key == "base").default_tag' .github/image-matrix.json)"
-            echo "base_cache_scope=$(jq -r '.images[] | select(.key == "base").cache_scope' .github/image-matrix.json)"
-            echo "derived_images=$(jq -c '[.images[] | select(.key != "base") | . + {build_args_text: (.build_args | join("\n"))}]' .github/image-matrix.json)"
+            images_with_paths="$(.github/scripts/manifest-images-with-paths.sh .github/image-matrix.json)"
+            echo "base_package=$(jq -r '.[] | select(.key == "base").package' <<<"${images_with_paths}")"
+            echo "base_context=$(jq -r '.[] | select(.key == "base").context' <<<"${images_with_paths}")"
+            echo "base_dockerfile=$(jq -r '.[] | select(.key == "base").dockerfile' <<<"${images_with_paths}")"
+            echo "base_default_tag=$(jq -r '.[] | select(.key == "base").default_tag' <<<"${images_with_paths}")"
+            echo "base_cache_scope=$(jq -r '.[] | select(.key == "base").cache_scope' <<<"${images_with_paths}")"
+            echo "derived_images=$(jq -c '[.[] | select(.key != "base") | . + {build_args_text: (.build_args | join("\n"))}]' <<<"${images_with_paths}")"
             echo "base_build_args<<EOF"
-            jq -r '.images[] | select(.key == "base").build_args | join("\n")' .github/image-matrix.json
+            jq -r '.[] | select(.key == "base").build_args | join("\n")' <<<"${images_with_paths}"
             echo "EOF"
           } >> "$GITHUB_OUTPUT"
 
@@ -163,12 +164,12 @@ jobs:
 
       - id: build-args
         name: Prepare build args
+        env:
+          BUILD_ARGS_TEXT: ${{ matrix.image.build_args_text }}
         run: |
           {
             echo "build_args<<EOF"
-            cat <<'ARGS'
-          ${{ matrix.image.build_args_text }}
-          ARGS
+            printf '%s\n' "${BUILD_ARGS_TEXT}"
             if [[ "${{ matrix.image.depends_on }}" == "base" ]]; then
               echo "BASE_IMAGE=${{ needs.publish-base.outputs.base_ref }}"
             fi
