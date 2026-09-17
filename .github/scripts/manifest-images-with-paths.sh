@@ -35,19 +35,19 @@ while IFS= read -r image; do
       ;;
   esac
 
-  dockerfile_relative="$(realpath --relative-to="$context_abs" "$dockerfile_abs")"
+  dockerfile_context_relative="$(realpath --relative-to="$context_abs" "$dockerfile_abs")"
 
-  computed_abs="$(realpath "$context/$dockerfile_relative")"
-  if [[ ! -f "$context/$dockerfile_relative" || "$computed_abs" != "$dockerfile_abs" ]]; then
+  computed_abs="$(realpath "$context/$dockerfile_context_relative")"
+  if [[ ! -f "$context/$dockerfile_context_relative" || "$computed_abs" != "$dockerfile_abs" ]]; then
     echo "Manifest image '$key' computed Dockerfile path does not resolve inside context." >&2
     echo "  context: $context" >&2
     echo "  dockerfile: $dockerfile" >&2
-    echo "  computed: $dockerfile_relative" >&2
+    echo "  computed: $dockerfile_context_relative" >&2
     exit 1
   fi
 
-  jq -c --arg dockerfile_relative "$dockerfile_relative" \
-    '. + {dockerfile_relative: $dockerfile_relative}' <<<"$image" >> "$tmp"
+  jq -c --arg dockerfile_context_relative "$dockerfile_context_relative" \
+    '. + {dockerfile_context_relative: $dockerfile_context_relative}' <<<"$image" >> "$tmp"
 done < <(jq -c '.images[]' "$manifest")
 
 jq -s . "$tmp"

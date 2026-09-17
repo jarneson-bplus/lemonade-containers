@@ -10,7 +10,7 @@ while IFS= read -r image; do
   key="$(jq -r '.key' <<<"$image")"
   package="$(jq -r '.package' <<<"$image")"
   context="$(jq -r '.context' <<<"$image")"
-  dockerfile_relative="$(jq -r '.dockerfile_relative' <<<"$image")"
+  dockerfile_context_relative="$(jq -r '.dockerfile_context_relative' <<<"$image")"
   default_tag="$(jq -r '.default_tag' <<<"$image")"
   cache_scope="$(jq -r '.cache_scope' <<<"$image")"
   depends_on="$(jq -r '.depends_on // ""' <<<"$image")"
@@ -32,7 +32,7 @@ while IFS= read -r image; do
   jq -n \
     --arg key "$key" \
     --arg context "$context" \
-    --arg dockerfile "$dockerfile_relative" \
+    --arg dockerfile "$dockerfile_context_relative" \
     --arg tag "local/${package}:${default_tag}" \
     --arg cache_scope "$cache_scope" \
     --argjson args "$args" \

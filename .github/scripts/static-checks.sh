@@ -26,7 +26,7 @@ images_with_paths="$(.github/scripts/manifest-images-with-paths.sh "$manifest")"
 bake_json="$(LEMONADE_BAKE_DRY_RUN=1 .github/scripts/full-build-no-push.sh "$manifest")"
 jq -e --argjson images "$images_with_paths" '
   . as $bake
-  | all($images[]; $bake.target[.key].dockerfile == .dockerfile_relative)
+  | all($images[]; $bake.target[.key].dockerfile == .dockerfile_context_relative)
 ' <<<"$bake_json" >/dev/null
 
 while IFS= read -r -d '' file; do

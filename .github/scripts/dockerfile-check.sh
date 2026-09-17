@@ -5,7 +5,7 @@ manifest="${1:-.github/image-matrix.json}"
 
 while IFS= read -r image; do
   key="$(jq -r '.key' <<<"$image")"
-  dockerfile_relative="$(jq -r '.dockerfile_relative' <<<"$image")"
+  dockerfile="$(jq -r '.dockerfile' <<<"$image")"
   context="$(jq -r '.context' <<<"$image")"
 
   build_args=()
@@ -20,7 +20,7 @@ while IFS= read -r image; do
   echo "::group::BuildKit check: $key"
   docker buildx build \
     --call=check \
-    --file "$dockerfile_relative" \
+    --file "$dockerfile" \
     "${build_args[@]}" \
     "$context"
   echo "::endgroup::"
