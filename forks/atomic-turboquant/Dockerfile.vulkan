@@ -21,7 +21,7 @@
 # up the exact vulkan asset filename for the release you want and compute
 # its sha256 yourself; do not reuse the ROCm checksum documented in
 # ../Dockerfile or the README for this variant.
-ARG BASE_IMAGE=ghcr.io/lemonade-sdk/lemonade-server:latest
+ARG BASE_IMAGE=ghcr.io/lemonade-sdk/lemonade-server:v11.9.0
 FROM ${BASE_IMAGE}
 
 USER root

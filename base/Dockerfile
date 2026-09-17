@@ -16,7 +16,7 @@
 #     --build-arg ROCM_VERSION=7.2.1 \
 #     --build-arg UBUNTU_CODENAME=noble \
 #     -t lemonade-rocm-runtime:rocm-7.2.1 -f base/Dockerfile base
-ARG BASE_IMAGE=ghcr.io/lemonade-sdk/lemonade-server:latest
+ARG BASE_IMAGE=ghcr.io/lemonade-sdk/lemonade-server:v11.9.0
 FROM ${BASE_IMAGE}
 
 ARG ROCM_VERSION=7.2.1
