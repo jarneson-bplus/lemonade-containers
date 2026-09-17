@@ -36,6 +36,24 @@ services:
       - render
     restart: unless-stopped
 
+  # ROCm build: fewtarius/CachyLLama via Heretek-AI/CachyLLama-BUILDER.
+  lemonade-cachyllama:
+    image: lemonade-cachyllama:b1036-gfx1151
+    ports:
+      - "127.0.0.1:13308:13305"
+    volumes:
+      - ./config/lemonade-cachyllama:/opt/lemonade/.config/lemonade
+      - lemonade-cache:/opt/lemonade/.cache/huggingface
+      - lemonade-llama:/opt/lemonade/llama
+      - lemonade-data:/opt/lemonade/.cache/lemonade
+    devices:
+      - /dev/kfd
+      - /dev/dri
+    group_add:
+      - video
+      - render
+    restart: unless-stopped
+
   # ROCm build: AtomicBot-ai/atomic-llama-cpp-turboquant.
   lemonade-atomic-turboquant-rocm:
     image: lemonade-atomic-turboquant:rocm-b10269-1.6.0
