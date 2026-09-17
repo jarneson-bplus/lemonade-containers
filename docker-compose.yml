@@ -1,0 +1,78 @@
+# Example compose file for running lemonade-containers fork images.
+#
+# Build the images referenced below first (see README.md for exact
+# `docker build` commands), then adjust the `image:` tags to match what you
+# built locally or pulled from GHCR.
+#
+# Each service bind-mounts a per-image host *directory* onto
+# /opt/lemonade/.config/lemonade rather than a single config.json file. The
+# container's entrypoint script creates config.json in that directory the
+# first time it starts (from the image's baked-in default), so after the
+# first run you can edit ./config/<image-name>/config.json directly on the
+# host and restart the container to pick up changes -- no need to exec into
+# the container or rebuild the image.
+#
+# The named volumes are shared across services so model weights, the
+# huggingface cache, and downloaded llama.cpp binaries aren't re-fetched per
+# image variant.
+services:
+  # ROCm build: kingjones30/ROCmFPX via Heretek-AI/ROCmFPX-BUILDER.
+  lemonade-rocmfpx-kingjones30:
+    image: lemonade-rocmfpx-kingjones30:b1045-gfx1151
+    ports:
+      # Prefer binding to 127.0.0.1 over 0.0.0.0 unless you specifically need
+      # to expose the API to other hosts on your network.
+      - "127.0.0.1:13305:13305"
+    volumes:
+      - ./config/lemonade-rocmfpx-kingjones30:/opt/lemonade/.config/lemonade
+      - lemonade-cache:/opt/lemonade/.cache/huggingface
+      - lemonade-llama:/opt/lemonade/llama
+      - lemonade-data:/opt/lemonade/.cache/lemonade
+    devices:
+      - /dev/kfd
+      - /dev/dri
+    group_add:
+      - video
+      - render
+    restart: unless-stopped
+
+  # ROCm build: AtomicBot-ai/atomic-llama-cpp-turboquant.
+  lemonade-atomic-turboquant-rocm:
+    image: lemonade-atomic-turboquant:rocm-b10269-1.6.0
+    ports:
+      - "127.0.0.1:13306:13305"
+    volumes:
+      - ./config/lemonade-atomic-turboquant-rocm:/opt/lemonade/.config/lemonade
+      - lemonade-cache:/opt/lemonade/.cache/huggingface
+      - lemonade-llama:/opt/lemonade/llama
+      - lemonade-data:/opt/lemonade/.cache/lemonade
+    devices:
+      - /dev/kfd
+      - /dev/dri
+    group_add:
+      - video
+      - render
+    restart: unless-stopped
+
+  # Vulkan build: AtomicBot-ai/atomic-llama-cpp-turboquant. No ROCm devices
+  # needed; Vulkan talks to the GPU through the normal render node.
+  lemonade-atomic-turboquant-vulkan:
+    image: lemonade-atomic-turboquant:vulkan-b10269-1.6.0
+    ports:
+      - "127.0.0.1:13307:13305"
+    volumes:
+      - ./config/lemonade-atomic-turboquant-vulkan:/opt/lemonade/.config/lemonade
+      - lemonade-cache:/opt/lemonade/.cache/huggingface
+      - lemonade-llama:/opt/lemonade/llama
+      - lemonade-data:/opt/lemonade/.cache/lemonade
+    devices:
+      - /dev/dri
+    group_add:
+      - video
+      - render
+    restart: unless-stopped
+
+volumes:
+  lemonade-cache:
+  lemonade-llama:
+  lemonade-data:
