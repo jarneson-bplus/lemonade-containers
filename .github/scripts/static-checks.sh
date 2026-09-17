@@ -21,10 +21,13 @@ jq -e '
     and all(.build_args[]; test("^[A-Z0-9_]+=")))
 ' "$manifest" >/dev/null
 
-while IFS=$'\t' read -r key dockerfile context; do
-  test -f "$dockerfile" || { echo "Missing Dockerfile for $key: $dockerfile" >&2; exit 1; }
-  test -d "$context" || { echo "Missing context for $key: $context" >&2; exit 1; }
-done < <(jq -r '.images[] | [.key, .dockerfile, .context] | @tsv' "$manifest")
+images_with_paths="$(.github/scripts/manifest-images-with-paths.sh "$manifest")"
+
+bake_json="$(LEMONADE_BAKE_DRY_RUN=1 .github/scripts/full-build-no-push.sh "$manifest")"
+jq -e --argjson images "$images_with_paths" '
+  . as $bake
+  | all($images[]; $bake.target[.key].dockerfile == .dockerfile_relative)
+' <<<"$bake_json" >/dev/null
 
 while IFS= read -r -d '' file; do
   jq -e . "$file" >/dev/null
