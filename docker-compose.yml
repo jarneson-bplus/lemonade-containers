@@ -16,15 +16,18 @@
 # huggingface cache, and downloaded llama.cpp binaries aren't re-fetched per
 # image variant.
 services:
-  # ROCm build: kingjones30/ROCmFPX via Heretek-AI/ROCmFPX-BUILDER.
-  lemonade-rocmfpx-kingjones30:
-    image: lemonade-rocmfpx-kingjones30:b1045-gfx1151
+  # Combined ROCm+Vulkan build: kingjones30/ROCmFPX via
+  # Heretek-AI/ROCmFPX-BUILDER. Upstream publishes ROCm zip assets only, but
+  # the Linux build is compiled with both GGML_HIP and GGML_VULKAN enabled, so
+  # its config exposes the same llama-server path for both backends.
+  lemonade-rocmfpx-kingjones30-combined:
+    image: lemonade-rocmfpx-kingjones30:combined-b1045-gfx1151
     ports:
       # Prefer binding to 127.0.0.1 over 0.0.0.0 unless you specifically need
       # to expose the API to other hosts on your network.
       - "127.0.0.1:13305:13305"
     volumes:
-      - ./config/lemonade-rocmfpx-kingjones30:/opt/lemonade/.config/lemonade
+      - ./config/lemonade-rocmfpx-kingjones30-combined:/opt/lemonade/.config/lemonade
       - lemonade-cache:/opt/lemonade/.cache/huggingface
       - lemonade-llama:/opt/lemonade/llama
       - lemonade-data:/opt/lemonade/.cache/lemonade
@@ -36,31 +39,14 @@ services:
       - render
     restart: unless-stopped
 
-  # ROCm build: fewtarius/CachyLLama via Heretek-AI/CachyLLama-BUILDER.
-  lemonade-cachyllama:
-    image: lemonade-cachyllama:b1036-gfx1151
-    ports:
-      - "127.0.0.1:13308:13305"
-    volumes:
-      - ./config/lemonade-cachyllama:/opt/lemonade/.config/lemonade
-      - lemonade-cache:/opt/lemonade/.cache/huggingface
-      - lemonade-llama:/opt/lemonade/llama
-      - lemonade-data:/opt/lemonade/.cache/lemonade
-    devices:
-      - /dev/kfd
-      - /dev/dri
-    group_add:
-      - video
-      - render
-    restart: unless-stopped
-
-  # ROCm build: AtomicBot-ai/atomic-llama-cpp-turboquant.
-  lemonade-atomic-turboquant-rocm:
-    image: lemonade-atomic-turboquant:rocm-b10269-1.6.0
+  # Combined ROCm+Vulkan build: fewtarius/CachyLLama via
+  # Heretek-AI/CachyLLama-BUILDER.
+  lemonade-cachyllama-combined:
+    image: lemonade-cachyllama:combined-b1036-gfx1151
     ports:
       - "127.0.0.1:13306:13305"
     volumes:
-      - ./config/lemonade-atomic-turboquant-rocm:/opt/lemonade/.config/lemonade
+      - ./config/lemonade-cachyllama-combined:/opt/lemonade/.config/lemonade
       - lemonade-cache:/opt/lemonade/.cache/huggingface
       - lemonade-llama:/opt/lemonade/llama
       - lemonade-data:/opt/lemonade/.cache/lemonade
@@ -72,12 +58,48 @@ services:
       - render
     restart: unless-stopped
 
-  # Vulkan build: AtomicBot-ai/atomic-llama-cpp-turboquant. No ROCm devices
+  # Vulkan-only build: fewtarius/CachyLLama via Heretek-AI/CachyLLama-BUILDER.
+  # No ROCm devices needed; Vulkan talks to the GPU through the normal render node.
+  lemonade-cachyllama-vulkan:
+    image: lemonade-cachyllama:vulkan-b1036
+    ports:
+      - "127.0.0.1:13307:13305"
+    volumes:
+      - ./config/lemonade-cachyllama-vulkan:/opt/lemonade/.config/lemonade
+      - lemonade-cache:/opt/lemonade/.cache/huggingface
+      - lemonade-llama:/opt/lemonade/llama
+      - lemonade-data:/opt/lemonade/.cache/lemonade
+    devices:
+      - /dev/dri
+    group_add:
+      - video
+      - render
+    restart: unless-stopped
+
+  # Combined ROCm+Vulkan build: AtomicBot-ai/atomic-llama-cpp-turboquant.
+  lemonade-atomic-turboquant-combined:
+    image: lemonade-atomic-turboquant:combined-b10269-1.6.0
+    ports:
+      - "127.0.0.1:13308:13305"
+    volumes:
+      - ./config/lemonade-atomic-turboquant-combined:/opt/lemonade/.config/lemonade
+      - lemonade-cache:/opt/lemonade/.cache/huggingface
+      - lemonade-llama:/opt/lemonade/llama
+      - lemonade-data:/opt/lemonade/.cache/lemonade
+    devices:
+      - /dev/kfd
+      - /dev/dri
+    group_add:
+      - video
+      - render
+    restart: unless-stopped
+
+  # Vulkan-only build: AtomicBot-ai/atomic-llama-cpp-turboquant. No ROCm devices
   # needed; Vulkan talks to the GPU through the normal render node.
   lemonade-atomic-turboquant-vulkan:
     image: lemonade-atomic-turboquant:vulkan-b10269-1.6.0
     ports:
-      - "127.0.0.1:13307:13305"
+      - "127.0.0.1:13309:13305"
     volumes:
       - ./config/lemonade-atomic-turboquant-vulkan:/opt/lemonade/.config/lemonade
       - lemonade-cache:/opt/lemonade/.cache/huggingface

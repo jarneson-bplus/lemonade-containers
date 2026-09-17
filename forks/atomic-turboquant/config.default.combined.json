@@ -1,7 +1,8 @@
 {
   "config_version": 2,
   "llamacpp": {
-    "backend": "vulkan",
+    "backend": "rocm",
+    "rocm_bin": "/opt/lemonade/custom-bin/turboquant/rocm/llama-server",
     "vulkan_bin": "/opt/lemonade/custom-bin/turboquant/vulkan/llama-server"
   }
 }

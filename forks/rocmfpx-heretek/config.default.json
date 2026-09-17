@@ -2,6 +2,7 @@
   "config_version": 2,
   "llamacpp": {
     "backend": "rocm",
-    "rocm_bin": "/opt/lemonade/custom-bin/rocmfpx/llama-server"
+    "rocm_bin": "/opt/lemonade/custom-bin/rocmfpx/llama-server",
+    "vulkan_bin": "/opt/lemonade/custom-bin/rocmfpx/llama-server"
   }
 }

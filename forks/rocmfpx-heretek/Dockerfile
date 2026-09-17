@@ -8,6 +8,11 @@
 # extracted into one directory -- copying just the binary will fail to find
 # its libs at runtime.
 #
+# The Heretek-AI/ROCmFPX-BUILDER Linux workflow builds this binary with both
+# GGML_HIP and GGML_VULKAN enabled, and the release does not currently publish
+# a standalone Linux Vulkan-only artifact. The paired config.default.json
+# therefore exposes the same llama-server path as both rocm_bin and vulkan_bin.
+#
 # This Dockerfile does not hardcode a version/asset/checksum: you must pass
 # all three as build args, pinned to a specific release you have verified.
 #
@@ -16,7 +21,7 @@
 #     --build-arg ROCMFPX_VERSION=b1045 \
 #     --build-arg ROCMFPX_ASSET=kingjones-rocmfpx-b1045-ubuntu-rocm-gfx1151-x64.zip \
 #     --build-arg ROCMFPX_SHA256=75ecc080e75e59f55c047eff9023d41ff0c085fc2d8ac83cb953ebd810e51b28 \
-#     -t lemonade-rocmfpx-kingjones30:b1045-gfx1151 \
+#     -t lemonade-rocmfpx-kingjones30:combined-b1045-gfx1151 \
 #     -f forks/rocmfpx-heretek/Dockerfile forks/rocmfpx-heretek
 #
 # For any other variant/GPU target, look up the exact asset filename and
