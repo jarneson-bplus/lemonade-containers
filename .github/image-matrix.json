@@ -1,0 +1,111 @@
+{
+  "schema_version": 1,
+  "upstream": {
+    "lemonade_server": {
+      "image": "ghcr.io/lemonade-sdk/lemonade-server:v11.9.0",
+      "version": "v11.9.0"
+    },
+    "rocm": {
+      "version": "7.2.1",
+      "ubuntu_codename": "noble"
+    }
+  },
+  "images": [
+    {
+      "key": "base",
+      "name": "Shared ROCm runtime base",
+      "package": "lemonade-rocm-runtime",
+      "dockerfile": "base/Dockerfile",
+      "context": "base",
+      "default_tag": "rocm-7.2.1",
+      "cache_scope": "base-rocm-7.2.1",
+      "depends_on": null,
+      "build_args": [
+        "BASE_IMAGE=ghcr.io/lemonade-sdk/lemonade-server:v11.9.0",
+        "ROCM_VERSION=7.2.1",
+        "UBUNTU_CODENAME=noble"
+      ]
+    },
+    {
+      "key": "atomic-turboquant-combined",
+      "name": "Atomic TurboQuant combined ROCm+Vulkan",
+      "package": "lemonade-atomic-turboquant",
+      "dockerfile": "forks/atomic-turboquant/Dockerfile",
+      "context": "forks/atomic-turboquant",
+      "default_tag": "combined-b10269-1.6.0",
+      "cache_scope": "atomic-turboquant-combined-b10269-1.6.0",
+      "depends_on": "base",
+      "build_args": [
+        "TURBOQUANT_VERSION=b10269-1.6.0",
+        "TURBOQUANT_ROCM_ASSET=llama-turboquant-linux-x64-rocm.tar.gz",
+        "TURBOQUANT_ROCM_SHA256=e7758e3191827460de13976284160878d02920acb17d54007bd548521def7dc9",
+        "TURBOQUANT_VULKAN_ASSET=llama-turboquant-linux-x64-vulkan.tar.gz",
+        "TURBOQUANT_VULKAN_SHA256=a0a3bc7b067fbac5e402ff3d603c50eaeffe505c5f576e6affb98ecaa9706aa3"
+      ]
+    },
+    {
+      "key": "atomic-turboquant-vulkan",
+      "name": "Atomic TurboQuant Vulkan-only",
+      "package": "lemonade-atomic-turboquant",
+      "dockerfile": "forks/atomic-turboquant/Dockerfile.vulkan",
+      "context": ".",
+      "default_tag": "vulkan-b10269-1.6.0",
+      "cache_scope": "atomic-turboquant-vulkan-b10269-1.6.0",
+      "depends_on": null,
+      "build_args": [
+        "BASE_IMAGE=ghcr.io/lemonade-sdk/lemonade-server:v11.9.0",
+        "TURBOQUANT_VERSION=b10269-1.6.0",
+        "TURBOQUANT_ASSET=llama-turboquant-linux-x64-vulkan.tar.gz",
+        "TURBOQUANT_SHA256=a0a3bc7b067fbac5e402ff3d603c50eaeffe505c5f576e6affb98ecaa9706aa3"
+      ]
+    },
+    {
+      "key": "cachyllama-heretek-combined",
+      "name": "CachyLlama Heretek combined ROCm+Vulkan",
+      "package": "lemonade-cachyllama",
+      "dockerfile": "forks/cachyllama-heretek/Dockerfile",
+      "context": "forks/cachyllama-heretek",
+      "default_tag": "combined-b1036-gfx1151",
+      "cache_scope": "cachyllama-heretek-combined-b1036-gfx1151",
+      "depends_on": "base",
+      "build_args": [
+        "CACHYLLAMA_VERSION=b1036",
+        "CACHYLLAMA_ROCM_ASSET=cachy-llama-b1036-ubuntu-rocm-gfx1151-x64.zip",
+        "CACHYLLAMA_ROCM_SHA256=b56cf63a6895f03173b7a2e4389ea2266241ade3c87ab6557cb14909f02c75b4",
+        "CACHYLLAMA_VULKAN_ASSET=cachy-llama-bin-ubuntu-vulkan-x64.tar.gz",
+        "CACHYLLAMA_VULKAN_SHA256=7241a3611f3bbea1e3a852178f73ed8376017c21fce5c116094cc8380e476604"
+      ]
+    },
+    {
+      "key": "cachyllama-heretek-vulkan",
+      "name": "CachyLlama Heretek Vulkan-only",
+      "package": "lemonade-cachyllama",
+      "dockerfile": "forks/cachyllama-heretek/Dockerfile.vulkan",
+      "context": ".",
+      "default_tag": "vulkan-b1036",
+      "cache_scope": "cachyllama-heretek-vulkan-b1036",
+      "depends_on": null,
+      "build_args": [
+        "BASE_IMAGE=ghcr.io/lemonade-sdk/lemonade-server:v11.9.0",
+        "CACHYLLAMA_VERSION=b1036",
+        "CACHYLLAMA_ASSET=cachy-llama-bin-ubuntu-vulkan-x64.tar.gz",
+        "CACHYLLAMA_SHA256=7241a3611f3bbea1e3a852178f73ed8376017c21fce5c116094cc8380e476604"
+      ]
+    },
+    {
+      "key": "rocmfpx-heretek-combined",
+      "name": "ROCmFPX Heretek combined HIP+Vulkan",
+      "package": "lemonade-rocmfpx",
+      "dockerfile": "forks/rocmfpx-heretek/Dockerfile",
+      "context": "forks/rocmfpx-heretek",
+      "default_tag": "combined-b1045-gfx1151",
+      "cache_scope": "rocmfpx-heretek-combined-b1045-gfx1151",
+      "depends_on": "base",
+      "build_args": [
+        "ROCMFPX_VERSION=b1045",
+        "ROCMFPX_ASSET=kingjones-rocmfpx-b1045-ubuntu-rocm-gfx1151-x64.zip",
+        "ROCMFPX_SHA256=75ecc080e75e59f55c047eff9023d41ff0c085fc2d8ac83cb953ebd810e51b28"
+      ]
+    }
+  ]
+}

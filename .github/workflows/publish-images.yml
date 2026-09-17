@@ -1,0 +1,205 @@
+name: Publish container images
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      publish_tag:
+        description: "Optional repo-release tag prefix to publish in addition to each manifest default tag (for example v1.2.3)"
+        required: false
+        type: string
+        default: ""
+
+permissions:
+  contents: read
+  packages: write
+  id-token: write
+
+concurrency:
+  group: publish-images-${{ github.ref_type == 'tag' && github.ref_name || inputs.publish_tag || github.run_id }}
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    name: Read image manifest
+    runs-on: ubuntu-24.04
+    outputs:
+      release_prefix: ${{ steps.outputs.outputs.release_prefix }}
+      has_release_prefix: ${{ steps.outputs.outputs.has_release_prefix }}
+      derived_images: ${{ steps.outputs.outputs.derived_images }}
+      base_package: ${{ steps.outputs.outputs.base_package }}
+      base_context: ${{ steps.outputs.outputs.base_context }}
+      base_dockerfile: ${{ steps.outputs.outputs.base_dockerfile }}
+      base_default_tag: ${{ steps.outputs.outputs.base_default_tag }}
+      base_cache_scope: ${{ steps.outputs.outputs.base_cache_scope }}
+      base_build_args: ${{ steps.outputs.outputs.base_build_args }}
+    steps:
+      - name: Checkout
+        # actions/checkout v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+
+      - name: Validate manifest before publishing
+        run: bash .github/scripts/static-checks.sh
+
+      - id: outputs
+        name: Export manifest outputs
+        env:
+          INPUT_PUBLISH_TAG: ${{ inputs.publish_tag || '' }}
+        run: |
+          set -euo pipefail
+
+          release_prefix=""
+          if [[ "${GITHUB_REF_TYPE:-}" == "tag" ]]; then
+            release_prefix="${GITHUB_REF_NAME}"
+          elif [[ -n "${INPUT_PUBLISH_TAG}" ]]; then
+            release_prefix="${INPUT_PUBLISH_TAG}"
+          fi
+
+          if [[ -n "${release_prefix}" ]]; then
+            has_release_prefix="true"
+          else
+            has_release_prefix="false"
+          fi
+
+          {
+            echo "release_prefix=${release_prefix}"
+            echo "has_release_prefix=${has_release_prefix}"
+            echo "base_package=$(jq -r '.images[] | select(.key == "base").package' .github/image-matrix.json)"
+            echo "base_context=$(jq -r '.images[] | select(.key == "base").context' .github/image-matrix.json)"
+            echo "base_dockerfile=$(jq -r '.images[] | select(.key == "base").dockerfile' .github/image-matrix.json)"
+            echo "base_default_tag=$(jq -r '.images[] | select(.key == "base").default_tag' .github/image-matrix.json)"
+            echo "base_cache_scope=$(jq -r '.images[] | select(.key == "base").cache_scope' .github/image-matrix.json)"
+            echo "derived_images=$(jq -c '[.images[] | select(.key != "base") | . + {build_args_text: (.build_args | join("\n"))}]' .github/image-matrix.json)"
+            echo "base_build_args<<EOF"
+            jq -r '.images[] | select(.key == "base").build_args | join("\n")' .github/image-matrix.json
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+  publish-base:
+    name: Publish shared ROCm runtime base
+    runs-on: ubuntu-24.04
+    needs: prepare
+    outputs:
+      base_ref: ${{ steps.base-ref.outputs.base_ref }}
+    steps:
+      - name: Checkout
+        # actions/checkout v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+
+      - name: Set up Docker Buildx
+        # docker/setup-buildx-action v3
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f
+
+      - name: Log in to GHCR
+        # docker/login-action v3
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - id: meta
+        name: Generate base metadata
+        # docker/metadata-action v5
+        uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051
+        with:
+          images: ghcr.io/${{ github.repository_owner }}/${{ needs.prepare.outputs.base_package }}
+          tags: |
+            type=raw,value=${{ needs.prepare.outputs.base_default_tag }}
+            type=raw,value=${{ needs.prepare.outputs.release_prefix }}-${{ needs.prepare.outputs.base_default_tag }},enable=${{ needs.prepare.outputs.has_release_prefix == 'true' }}
+          labels: |
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+
+      - id: build
+        name: Build and push base image
+        # docker/build-push-action v6
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8
+        with:
+          context: ${{ needs.prepare.outputs.base_context }}
+          file: ${{ needs.prepare.outputs.base_dockerfile }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: ${{ needs.prepare.outputs.base_build_args }}
+          cache-from: type=gha,scope=${{ needs.prepare.outputs.base_cache_scope }}
+          cache-to: type=gha,mode=max,scope=${{ needs.prepare.outputs.base_cache_scope }}
+          provenance: true
+          sbom: true
+
+      - id: base-ref
+        name: Export base digest reference
+        run: |
+          echo "base_ref=ghcr.io/${{ github.repository_owner }}/${{ needs.prepare.outputs.base_package }}@${{ steps.build.outputs.digest }}" >> "$GITHUB_OUTPUT"
+
+  publish-derived:
+    name: Publish ${{ matrix.image.name }}
+    runs-on: ubuntu-24.04
+    needs:
+      - prepare
+      - publish-base
+    strategy:
+      fail-fast: false
+      matrix:
+        image: ${{ fromJson(needs.prepare.outputs.derived_images) }}
+    steps:
+      - name: Checkout
+        # actions/checkout v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+
+      - name: Set up Docker Buildx
+        # docker/setup-buildx-action v3
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f
+
+      - name: Log in to GHCR
+        # docker/login-action v3
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - id: build-args
+        name: Prepare build args
+        run: |
+          {
+            echo "build_args<<EOF"
+            cat <<'ARGS'
+          ${{ matrix.image.build_args_text }}
+          ARGS
+            if [[ "${{ matrix.image.depends_on }}" == "base" ]]; then
+              echo "BASE_IMAGE=${{ needs.publish-base.outputs.base_ref }}"
+            fi
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - id: meta
+        name: Generate image metadata
+        # docker/metadata-action v5
+        uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051
+        with:
+          images: ghcr.io/${{ github.repository_owner }}/${{ matrix.image.package }}
+          tags: |
+            type=raw,value=${{ matrix.image.default_tag }}
+            type=raw,value=${{ needs.prepare.outputs.release_prefix }}-${{ matrix.image.default_tag }},enable=${{ needs.prepare.outputs.has_release_prefix == 'true' }}
+          labels: |
+            org.opencontainers.image.title=${{ matrix.image.name }}
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+
+      - name: Build and push image
+        # docker/build-push-action v6
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8
+        with:
+          context: ${{ matrix.image.context }}
+          file: ${{ matrix.image.dockerfile }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: ${{ steps.build-args.outputs.build_args }}
+          cache-from: type=gha,scope=${{ matrix.image.cache_scope }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.image.cache_scope }}
+          provenance: true
+          sbom: true

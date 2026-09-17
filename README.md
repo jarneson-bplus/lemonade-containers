@@ -120,7 +120,7 @@ docker build \
   --build-arg ROCMFPX_VERSION=b1045 \
   --build-arg ROCMFPX_ASSET=kingjones-rocmfpx-b1045-ubuntu-rocm-gfx1151-x64.zip \
   --build-arg ROCMFPX_SHA256=75ecc080e75e59f55c047eff9023d41ff0c085fc2d8ac83cb953ebd810e51b28 \
-  -t lemonade-rocmfpx-kingjones30:combined-b1045-gfx1151 \
+  -t lemonade-rocmfpx:combined-b1045-gfx1151 \
   -f forks/rocmfpx-heretek/Dockerfile forks/rocmfpx-heretek
 ```
 
@@ -242,6 +242,84 @@ Vulkan-only images), including the
 flags ROCm containers need, and a note about preferring
 `127.0.0.1:13305:13305` over `0.0.0.0:13305:13305` when publishing the port.
 
+## GitHub Actions: validation and publishing
+
+The checked-in `.github/image-matrix.json` manifest is the single source of
+truth for CI and publishing metadata: image keys, GHCR package names,
+Dockerfile/context paths, immutable tags, cache scopes, base-image dependency,
+and all pinned upstream build args/checksums. When bumping an upstream fork,
+update the relevant manifest entry first, then mirror any human-facing command
+examples in this README.
+
+Two workflows consume that manifest:
+
+- **Validate container images** (`.github/workflows/validate-images.yml`)
+  runs on pull requests that touch Dockerfiles, configs, workflows, the
+  manifest, README, or compose file. It performs lightweight checks (`jq` for
+  the manifest and JSON configs, `sh -n` for the entrypoint, `docker compose
+  config` when Compose is available, `actionlint` when available, and a guard
+  against floating `lemonade-server:latest`), then runs BuildKit
+  `--call=check` for every manifest image. It does not push and does not use
+  secrets. Because full ROCm image builds download large ROCm/runtime/fork
+  archives and can consume significant Actions minutes/cache storage, PRs use
+  this Dockerfile-level validation by default. A maintainer can manually run
+  the workflow with `full_build=true` to perform full non-publishing builds;
+  that path builds the base and derived images together with a Buildx bake file
+  so derived images can consume the local base target without relying on a
+  registry push.
+- **Publish container images** (`.github/workflows/publish-images.yml`) runs
+  on manual dispatch and on pushed repository version tags matching `v*`. It
+  logs in to GHCR with `GITHUB_TOKEN` (`contents: read`, `packages: write`),
+  builds and pushes the shared base first, then builds each derived image using
+  the pushed base image by digest via its `BASE_IMAGE` build arg. Buildx uses
+  separate GitHub Actions cache scopes per manifest image and emits OCI labels,
+  provenance, and SBOM attestations where supported by
+  `docker/build-push-action`.
+
+Publishing never emits `latest` by default. Every image gets its manifest
+`default_tag`; when the workflow runs from a repository tag such as `v1.0.0`,
+it also publishes a repository-release-qualified tag in the form
+`v1.0.0-<default_tag>`. Manual dispatch can do the same by setting the optional
+`publish_tag` input; if omitted, only the manifest default tags are pushed.
+
+GHCR package/tag scheme:
+
+| Image | Package | Default tag | Repo-release tag example |
+| --- | --- | --- | --- |
+| Shared ROCm runtime | `ghcr.io/${OWNER}/lemonade-rocm-runtime` | `rocm-7.2.1` | `v1.0.0-rocm-7.2.1` |
+| Atomic TurboQuant combined | `ghcr.io/${OWNER}/lemonade-atomic-turboquant` | `combined-b10269-1.6.0` | `v1.0.0-combined-b10269-1.6.0` |
+| Atomic TurboQuant Vulkan-only | `ghcr.io/${OWNER}/lemonade-atomic-turboquant` | `vulkan-b10269-1.6.0` | `v1.0.0-vulkan-b10269-1.6.0` |
+| CachyLlama combined | `ghcr.io/${OWNER}/lemonade-cachyllama` | `combined-b1036-gfx1151` | `v1.0.0-combined-b1036-gfx1151` |
+| CachyLlama Vulkan-only | `ghcr.io/${OWNER}/lemonade-cachyllama` | `vulkan-b1036` | `v1.0.0-vulkan-b1036` |
+| ROCmFPX combined | `ghcr.io/${OWNER}/lemonade-rocmfpx` | `combined-b1045-gfx1151` | `v1.0.0-combined-b1045-gfx1151` |
+
+Example pulls:
+
+```sh
+OWNER=<github-owner>
+docker pull ghcr.io/${OWNER}/lemonade-rocm-runtime:rocm-7.2.1
+docker pull ghcr.io/${OWNER}/lemonade-atomic-turboquant:combined-b10269-1.6.0
+docker pull ghcr.io/${OWNER}/lemonade-atomic-turboquant:vulkan-b10269-1.6.0
+docker pull ghcr.io/${OWNER}/lemonade-cachyllama:combined-b1036-gfx1151
+docker pull ghcr.io/${OWNER}/lemonade-cachyllama:vulkan-b1036
+docker pull ghcr.io/${OWNER}/lemonade-rocmfpx:combined-b1045-gfx1151
+```
+
+To publish a repository release build:
+
+```sh
+git tag v1.0.0
+git push origin v1.0.0
+```
+
+Or run **Publish container images** manually from the Actions tab and,
+optionally, set `publish_tag` (for example `v1.0.0-test`) to add
+`v1.0.0-test-<default_tag>` tags alongside the default immutable tags.
+
+Published GHCR packages may initially be private depending on repository and
+account defaults. If you want public pulls, open the package settings in GHCR
+and change visibility to public.
+
 ## Publishing to GHCR
 
 Public container image storage and bandwidth are currently free on GHCR.
@@ -252,7 +330,7 @@ duplicating the ROCm install across every tag. A reasonable tag scheme:
 
 ```
 ghcr.io/<you>/lemonade-rocm-runtime:rocm-7.2.1
-ghcr.io/<you>/lemonade-rocmfpx-kingjones30:combined-b1045-gfx1151
+ghcr.io/<you>/lemonade-rocmfpx:combined-b1045-gfx1151
 ghcr.io/<you>/lemonade-cachyllama:combined-b1036-gfx1151
 ghcr.io/<you>/lemonade-cachyllama:vulkan-b1036
 ghcr.io/<you>/lemonade-atomic-turboquant:combined-b10269-1.6.0

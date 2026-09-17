@@ -1,8 +1,8 @@
 # Example compose file for running lemonade-containers fork images.
 #
 # Build the images referenced below first (see README.md for exact
-# `docker build` commands), then adjust the `image:` tags to match what you
-# built locally or pulled from GHCR.
+# `docker build` commands), or set IMAGE_PREFIX to a registry prefix such as
+# `ghcr.io/<owner>/` to pull published images from GHCR.
 #
 # Each service bind-mounts a per-image host *directory* onto
 # /opt/lemonade/.config/lemonade rather than a single config.json file. The
@@ -21,7 +21,7 @@ services:
   # the Linux build is compiled with both GGML_HIP and GGML_VULKAN enabled, so
   # its config exposes the same llama-server path for both backends.
   lemonade-rocmfpx-kingjones30-combined:
-    image: lemonade-rocmfpx-kingjones30:combined-b1045-gfx1151
+    image: ${IMAGE_PREFIX:-}lemonade-rocmfpx:combined-b1045-gfx1151
     ports:
       # Prefer binding to 127.0.0.1 over 0.0.0.0 unless you specifically need
       # to expose the API to other hosts on your network.
@@ -42,7 +42,7 @@ services:
   # Combined ROCm+Vulkan build: fewtarius/CachyLLama via
   # Heretek-AI/CachyLLama-BUILDER.
   lemonade-cachyllama-combined:
-    image: lemonade-cachyllama:combined-b1036-gfx1151
+    image: ${IMAGE_PREFIX:-}lemonade-cachyllama:combined-b1036-gfx1151
     ports:
       - "127.0.0.1:13306:13305"
     volumes:
@@ -61,7 +61,7 @@ services:
   # Vulkan-only build: fewtarius/CachyLLama via Heretek-AI/CachyLLama-BUILDER.
   # No ROCm devices needed; Vulkan talks to the GPU through the normal render node.
   lemonade-cachyllama-vulkan:
-    image: lemonade-cachyllama:vulkan-b1036
+    image: ${IMAGE_PREFIX:-}lemonade-cachyllama:vulkan-b1036
     ports:
       - "127.0.0.1:13307:13305"
     volumes:
@@ -78,7 +78,7 @@ services:
 
   # Combined ROCm+Vulkan build: AtomicBot-ai/atomic-llama-cpp-turboquant.
   lemonade-atomic-turboquant-combined:
-    image: lemonade-atomic-turboquant:combined-b10269-1.6.0
+    image: ${IMAGE_PREFIX:-}lemonade-atomic-turboquant:combined-b10269-1.6.0
     ports:
       - "127.0.0.1:13308:13305"
     volumes:
@@ -97,7 +97,7 @@ services:
   # Vulkan-only build: AtomicBot-ai/atomic-llama-cpp-turboquant. No ROCm devices
   # needed; Vulkan talks to the GPU through the normal render node.
   lemonade-atomic-turboquant-vulkan:
-    image: lemonade-atomic-turboquant:vulkan-b10269-1.6.0
+    image: ${IMAGE_PREFIX:-}lemonade-atomic-turboquant:vulkan-b10269-1.6.0
     ports:
       - "127.0.0.1:13309:13305"
     volumes:

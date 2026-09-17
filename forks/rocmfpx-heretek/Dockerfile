@@ -21,7 +21,7 @@
 #     --build-arg ROCMFPX_VERSION=b1045 \
 #     --build-arg ROCMFPX_ASSET=kingjones-rocmfpx-b1045-ubuntu-rocm-gfx1151-x64.zip \
 #     --build-arg ROCMFPX_SHA256=75ecc080e75e59f55c047eff9023d41ff0c085fc2d8ac83cb953ebd810e51b28 \
-#     -t lemonade-rocmfpx-kingjones30:combined-b1045-gfx1151 \
+#     -t lemonade-rocmfpx:combined-b1045-gfx1151 \
 #     -f forks/rocmfpx-heretek/Dockerfile forks/rocmfpx-heretek
 #
 # For any other variant/GPU target, look up the exact asset filename and
