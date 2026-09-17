@@ -20,6 +20,9 @@ forks/
   rocmfpx-heretek/
     Dockerfile           # Heretek-AI/ROCmFPX-BUILDER release (ROCm)
     config.default.json
+  cachyllama-heretek/
+    Dockerfile           # Heretek-AI/CachyLLama-BUILDER release (ROCm)
+    config.default.json
   atomic-turboquant/
     Dockerfile              # AtomicBot-ai/atomic-llama-cpp-turboquant, ROCm asset
     Dockerfile.vulkan       # same fork, Vulkan asset, no ROCm layer needed
@@ -103,6 +106,31 @@ up the exact release tag and asset filename on its Releases page, download
 it, and compute the sha256 yourself (`sha256sum <file>`) -- don't reuse the
 checksum above for a different asset.
 
+#### `forks/cachyllama-heretek/` -- Heretek-AI/CachyLLama-BUILDER
+
+[Heretek-AI/CachyLLama-BUILDER](https://github.com/Heretek-AI/CachyLLama-BUILDER)
+builds and publishes prebuilt, per-GPU-target release archives for
+`fewtarius/CachyLLama` + `fewtarius/llama-ai`. Release assets look like
+`cachy-llama-<tag>-ubuntu-rocm-<gfxtarget>-x64.zip` and, like ROCmFPX-BUILDER
+above, contain `llama-server` plus shared libraries with an `$ORIGIN` RPATH,
+so the whole zip must be extracted (not just the binary).
+
+Example build, targeting `gfx1151` (Strix Halo), release `b1036`:
+
+```sh
+docker build \
+  --build-arg CACHYLLAMA_VERSION=b1036 \
+  --build-arg CACHYLLAMA_ASSET=cachy-llama-b1036-ubuntu-rocm-gfx1151-x64.zip \
+  --build-arg CACHYLLAMA_SHA256=b56cf63a6895f03173b7a2e4389ea2266241ade3c87ab6557cb14909f02c75b4 \
+  -t lemonade-cachyllama:b1036-gfx1151 \
+  -f forks/cachyllama-heretek/Dockerfile forks/cachyllama-heretek
+```
+
+Other GPU targets (`gfx1150`, `gfx110X`, `gfx103X`, `gfx90a`, `gfx908`,
+`gfx120X`) are published from the same release -- grab the matching asset
+name and compute its own sha256 yourself from
+[the latest CachyLLama-BUILDER release](https://github.com/Heretek-AI/CachyLLama-BUILDER/releases/latest).
+
 #### `forks/atomic-turboquant/` -- AtomicBot-ai/atomic-llama-cpp-turboquant
 
 [AtomicBot-ai/atomic-llama-cpp-turboquant](https://github.com/AtomicBot-ai/atomic-llama-cpp-turboquant)
@@ -138,11 +166,11 @@ docker build \
   -f forks/atomic-turboquant/Dockerfile.vulkan .
 ```
 
-Only the two checksums documented above (kingjones30 gfx1151 `b1045`, and
-atomic-turboquant ROCm `b10269-1.6.0`) are pinned/verified in this repo. For
-the Vulkan example (or any other release/asset), download the asset
-yourself and run `sha256sum` on it -- do not reuse or guess a checksum for a
-file you haven't downloaded.
+Only the three checksums documented above (kingjones30 gfx1151 `b1045`,
+cachyllama gfx1151 `b1036`, and atomic-turboquant ROCm `b10269-1.6.0`) are
+pinned/verified in this repo. For the Vulkan example (or any other
+release/asset), download the asset yourself and run `sha256sum` on it -- do
+not reuse or guess a checksum for a file you haven't downloaded.
 
 ## Config: auto-created on first run, then yours to edit
 
@@ -176,6 +204,7 @@ duplicating the ROCm install across every tag. A reasonable tag scheme:
 ```
 ghcr.io/<you>/lemonade-rocm-runtime:rocm-7.2.1
 ghcr.io/<you>/lemonade-rocmfpx-kingjones30:b1045-gfx1151
+ghcr.io/<you>/lemonade-cachyllama:b1036-gfx1151
 ghcr.io/<you>/lemonade-atomic-turboquant:rocm-b10269-1.6.0
 ghcr.io/<you>/lemonade-atomic-turboquant:vulkan-b10269-1.6.0
 ```
