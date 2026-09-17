@@ -31,7 +31,7 @@ config/                 # example bind-mount targets for docker-compose.yml (git
 
 ### Layer 1: shared base runtime (`base/Dockerfile`)
 
-Builds `FROM ghcr.io/lemonade-sdk/lemonade-server:v11.9.0` and adds:
+Builds `FROM ghcr.io/lemonade-sdk/lemonade-server` and adds:
 
 - A ROCm 7.2.1 userspace runtime (adds the `repo.radeon.com` apt repo, then
   installs `rocm-libs hip-runtime-amd rocblas hipblas`; sets
@@ -64,17 +64,6 @@ docker build \
   -t lemonade-rocm-runtime:rocm-7.2.1 \
   -f base/Dockerfile base
 ```
-
-**On the pinned base image version:** `v11.9.0` is a specific
-[lemonade-sdk/lemonade release](https://github.com/lemonade-sdk/lemonade/releases)
-tag, confirmed to exist as a corresponding `ghcr.io/lemonade-sdk/lemonade-server:vX.Y.Z`
-image via that repo's `build-and-push-container.yml` workflow, which publishes
-a version-tagged image for every pushed git tag. This repo intentionally
-pins to that tag instead of `:latest`, since `:latest` floats and would make
-image builds non-reproducible over time. Periodically check the
-[releases page](https://github.com/lemonade-sdk/lemonade/releases) for newer
-versions and bump the `BASE_IMAGE` default (and `--build-arg BASE_IMAGE=...`
-overrides you use) manually when you want to move to a newer pin.
 
 ### Layer 2: one Dockerfile per fork (`forks/<fork>/`)
 
