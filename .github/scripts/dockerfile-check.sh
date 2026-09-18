@@ -3,6 +3,10 @@ set -euo pipefail
 
 manifest="${1:-.github/image-matrix.json}"
 
+# Derived images normally build FROM a locally built base; for a syntax-only
+# check, substitute the pinned upstream Lemonade image from the manifest.
+base_image="$(jq -r '.upstream.lemonade_server.image' "$manifest")"
+
 while IFS= read -r image; do
   key="$(jq -r '.key' <<<"$image")"
   dockerfile="$(jq -r '.dockerfile' <<<"$image")"
@@ -14,7 +18,7 @@ while IFS= read -r image; do
   done < <(jq -r '.build_args[]' <<<"$image")
 
   if [[ "$(jq -r '.depends_on // ""' <<<"$image")" != "" ]]; then
-    build_args+=(--build-arg "BASE_IMAGE=ghcr.io/lemonade-sdk/lemonade-server:v11.9.0")
+    build_args+=(--build-arg "BASE_IMAGE=${base_image}")
   fi
 
   echo "::group::BuildKit check: $key"

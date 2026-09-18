@@ -1,0 +1,27 @@
+# Dependabot only covers the one ecosystem it can actually parse in this
+# repository: GitHub Actions. Every workflow pins actions by commit SHA, which
+# Dependabot updates in place.
+#
+# Docker is intentionally *not* configured. Dependabot's Docker ecosystem reads
+# literal `FROM` references and does not resolve `ARG`-based base images
+# (dependabot/dependabot-core#2057). Every Dockerfile in this repository builds
+# `FROM ${BASE_IMAGE}`, so a `package-ecosystem: docker` entry would silently
+# never produce an update.
+#
+# The pinned Lemonade Server base image and the pinned llama.cpp fork release
+# assets (tag + filename + sha256 in `.github/image-matrix.json`) are handled by
+# `.github/workflows/update-dependencies.yml` instead.
+version: 2
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "ci"
+    labels:
+      - "dependencies"
+      - "github-actions"

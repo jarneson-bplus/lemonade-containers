@@ -259,6 +259,85 @@ GHCR packages may initially be private depending on account/repository
 settings; make them public in package settings if desired.
 
 `v11.9.0` is pinned because the upstream Lemonade workflow publishes a
-`vX.Y.Z` image tag for every pushed Lemonade git tag. Periodically check
-<https://github.com/lemonade-sdk/lemonade/releases> and bump this pin manually
-instead of using floating `:latest`.
+`vX.Y.Z` image tag for every pushed Lemonade git tag. Floating `:latest` is
+never used; the pin is bumped by the automated updater below (or by hand).
+
+## Automated dependency updates
+
+Two mechanisms keep pins current without manual tracking. Neither one
+publishes an image: both end in a pull request that a human reviews.
+
+### Dependabot (GitHub Actions only)
+
+`.github/dependabot.yml` enables the `github-actions` ecosystem weekly, so
+workflow action pins (which are SHA-pinned) get update PRs. The `docker`
+ecosystem is deliberately **not** enabled: every Dockerfile here uses
+`FROM ${BASE_IMAGE}`, and Dependabot cannot resolve an `ARG`-based `FROM`
+(dependabot-core#2057), so enabling it would only produce silence or noise.
+Base image updates are handled by the updater workflow instead.
+
+### Update pinned dependencies workflow
+
+**Update pinned dependencies** (`.github/workflows/update-dependencies.yml`)
+runs every Monday at 06:30 UTC and on manual dispatch. It calls
+`.github/scripts/update_dependencies.py` (Python standard library only, no
+third-party dependencies, no extra secrets — it uses the automatic
+`GITHUB_TOKEN` and needs only `contents: write` + `pull-requests: write`).
+
+Per run it:
+
+1. reads the `update_sources` block in `.github/image-matrix.json`;
+2. lists upstream GitHub releases and picks the newest release whose tag
+   matches that source's `tag_pattern`, skipping drafts and prereleases, and
+   never moving a pin backwards in time;
+3. for the Lemonade base image, verifies the corresponding GHCR tag actually
+   exists and records its digest;
+4. for fork sources, resolves each configured asset, downloads it, and
+   computes the SHA-256 itself;
+5. rewrites the manifest (version build args, asset names, checksums, default
+   tags, cache scopes, and every derived `BASE_IMAGE`) and propagates the same
+   literals into the Dockerfiles, `docker-compose.yml`, and this README;
+6. re-validates the manifest and runs `static-checks.sh`;
+7. force-pushes `automated/dependency-updates` and opens or updates one PR.
+
+Manual dispatch inputs:
+
+| Input | Effect |
+| --- | --- |
+| `sources` | Comma-separated `update_sources` ids to check (empty = all) |
+| `dry_run` | Report available updates in the job summary; change nothing |
+| `allow_partial` | Apply the sources that succeeded even if another failed |
+
+Supported update sources (all configured in `update_sources`):
+
+| Id | Kind | Upstream | Updates |
+| --- | --- | --- | --- |
+| `lemonade-server` | `lemonade_server` | `lemonade-sdk/lemonade` | base image tag for every image |
+| `atomic-turboquant` | `github_release_assets` | `AtomicBot-ai/atomic-llama-cpp-turboquant` | combined + Vulkan-only variants |
+| `cachyllama-heretek` | `github_release_assets` | `Heretek-AI/CachyLLama-BUILDER` | combined + Vulkan-only variants |
+| `rocmfpx-heretek` | `github_release_assets` | `Heretek-AI/ROCmFPX-BUILDER` | combined variant |
+
+Each asset entry carries a fully anchored `asset_pattern` (with an optional
+`{version}` placeholder) and, where relevant, the GPU target baked into that
+pattern. Limitations to be aware of:
+
+- **Exactly one match, or the run fails.** Zero matches or two matches is a
+  hard error that lists the release's available assets. The updater never
+  guesses an asset, reuses an old checksum, or falls back to a sidecar
+  `.sha256` file — checksums are always computed from the bytes it downloaded.
+- **Renames need a config change.** If upstream changes its asset naming
+  scheme, update `asset_pattern` in the manifest; the failure message tells
+  you what the release actually contains.
+- **GPU targets are pinned.** ROCm assets are pinned to `gfx1151` builds; a
+  different target is a manifest edit, not an automatic upgrade.
+- ROCmFPX publishes no standalone Vulkan archive, so it has no Vulkan-only
+  variant to update.
+- By default a failure in any source aborts the whole run and writes nothing.
+
+### Reviewing and publishing an update PR
+
+Because the branch is pushed with `GITHUB_TOKEN`, GitHub does not start other
+workflows for it. After reviewing the diff, run **Validate container images**
+manually against the branch (optionally with `full_build=true`) and then use
+the normal release/publish flow. The updater workflow itself never logs in to
+GHCR and never publishes.
