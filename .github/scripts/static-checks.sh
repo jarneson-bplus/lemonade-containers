@@ -26,7 +26,7 @@ jq -e '
   | def image($key): $images[] | select(.key == $key);
   def keys_before($index): [range(0; $index) as $i | $images[$i].key];
   ([.images[].depends_on // empty] - [.images[].key] | length == 0)
-  and all(range(0; ($images | length)) as $i;
+  and all(range(0; ($images | length)); . as $i |
     ($images[$i].depends_on == null)
     or ((keys_before($i) | index($images[$i].depends_on)) != null))
   and (image("runtime").depends_on == null)
