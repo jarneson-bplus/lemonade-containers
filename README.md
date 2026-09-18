@@ -93,6 +93,25 @@ The Heretek ROCm images deliberately avoid `rocm-lemon`; a global
 `LD_LIBRARY_PATH=/opt/rocm/lib` could shadow the bundled libraries that were
 built against moving TheRock nightly versions.
 
+## Choosing a fork
+
+Use this guide to choose the package and tag variant that matches the backend
+and GPU target you need. The table describes only variants currently defined
+in `.github/image-matrix.json` and the behavior documented by their
+Dockerfiles.
+
+| Package / variant | ROCm / HIP | Vulkan | CPU asset in current matrix | GPU target shown in matrix | ROCm runtime source | Image composition and notable quirk |
+| --- | --- | --- | --- | --- | --- | --- |
+| `atomic-lemon:combined-*` | ✅ Separate ROCm asset | ✅ Separate Vulkan asset | ❌ | Generic release assets; no target encoded | `rocm-lemon` supplies ROCm userspace | Bundles both backends for runtime switching; larger than its Vulkan-only counterpart because it downloads both assets. |
+| `atomic-lemon:vulkan-*` | ❌ | ✅ | ❌ | Generic Vulkan asset; no target encoded | `lemon-base` | Vulkan-only image; avoids the ROCm runtime layer and is the smaller Atomic variant. |
+| `cachy-lemon:combined-*-gfx1151` | ✅ `gfx1151` asset shown | ✅ Generic Vulkan asset | ❌ | `gfx1151` shown; other targets are documented as available from the release | Bundled in the ROCm archive; uses `lemon-base` | Bundles both backends for runtime switching. The archive is extracted whole so its sibling libraries and `$ORIGIN` RPATH remain available. |
+| `cachy-lemon:vulkan-*` | ❌ | ✅ | ❌ | Generic Vulkan asset; no target encoded | Not needed; uses `lemon-base` | Vulkan-only image; avoids the ROCm runtime layer and is the smaller Cachy variant. |
+| `fpx-lemon:combined-*-gfx1151` | ✅ HIP | ✅ Same `llama-server` path | ❌ | `gfx1151` shown | Bundled in the ROCmFPX archive; uses `lemon-base` | The current Linux asset enables both backends, but no standalone Vulkan-only artifact is published; both config entries therefore point to the same binary. |
+
+The matrix currently defines no CPU image for these packages. For exact
+version, asset, and checksum values, use the image matrix and the build
+examples below rather than inferring a tag from the fork name.
+
 ## Fork builds
 
 Every fork Dockerfile downloads pinned upstream release assets over HTTPS,
