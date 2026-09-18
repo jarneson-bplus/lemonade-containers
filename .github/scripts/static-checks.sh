@@ -7,8 +7,10 @@ jq -e . "$manifest" >/dev/null
 
 jq -e '
   .schema_version == 1
-  and (.upstream.lemonade_server.image == "ghcr.io/lemonade-sdk/lemonade-server:v11.9.0")
-  and (.upstream.rocm.version == "7.2.1")
+  and (.upstream.lemonade_server.version | test("^v[0-9]+\\.[0-9]+\\.[0-9]+$"))
+  and (.upstream.lemonade_server.image
+    == "ghcr.io/lemonade-sdk/lemonade-server:" + .upstream.lemonade_server.version)
+  and (.upstream.rocm.version | test("^[0-9]+\\.[0-9]+\\.[0-9]+$"))
   and (.images | length > 0)
   and ([.images[].key] | length == (unique | length))
   and ([.images[].cache_scope] | length == (unique | length))
@@ -19,6 +21,26 @@ jq -e '
     and (.default_tag | length > 0)
     and (.build_args | type == "array")
     and all(.build_args[]; test("^[A-Z0-9_]+=")))
+' "$manifest" >/dev/null
+
+# Version pins must stay consistent across upstream, tags, and the BASE_IMAGE
+# references that chain the images together.
+jq -e '
+  .upstream.lemonade_server as $lemonade
+  | .upstream.rocm as $rocm
+  | .images as $images
+  | def image($key): ($images[] | select(.key == $key));
+  def build_arg($img; $name): ($img.build_args[] | select(startswith($name + "=")) | ltrimstr($name + "="));
+  (image("runtime").default_tag == "lemonade-" + $lemonade.version)
+  and (build_arg(image("runtime"); "BASE_IMAGE") == $lemonade.image)
+  and (image("rocm-runtime").default_tag == "rocm-" + $rocm.version)
+  and (build_arg(image("rocm-runtime"); "ROCM_VERSION") == $rocm.version)
+  and (build_arg(image("rocm-runtime"); "UBUNTU_CODENAME") == $rocm.ubuntu_codename)
+  and all($images[] | select(.depends_on != null);
+    . as $img
+    | build_arg($img; "BASE_IMAGE") == (image($img.depends_on) | .package + ":" + .default_tag))
+  and all($images[];
+    all(.build_args[] | select(test("_SHA256=")); split("=")[1] | test("^[0-9a-f]{64}$")))
 ' "$manifest" >/dev/null
 
 jq -e '
@@ -48,6 +70,27 @@ fi
 
 images_with_paths="$(.github/scripts/manifest-images-with-paths.sh "$manifest")"
 
+# Each Dockerfile's ARG BASE_IMAGE default must match the manifest, so a
+# dependency bump that rewrites the manifest cannot leave stale documentation
+# defaults behind.
+while IFS= read -r image; do
+  key="$(jq -r '.key' <<<"$image")"
+  dockerfile="$(jq -r '.dockerfile' <<<"$image")"
+  depends_on="$(jq -r '.depends_on // ""' <<<"$image")"
+
+  if [[ -n "$depends_on" ]]; then
+    expected="$(jq -r --arg key "$depends_on" '.[] | select(.key == $key) | .package + ":" + .default_tag' <<<"$images_with_paths")"
+  else
+    expected="$(jq -r '.upstream.lemonade_server.image' "$manifest")"
+  fi
+
+  actual="$(sed -n 's/^ARG BASE_IMAGE=//p' "$dockerfile" | head -n 1)"
+  if [[ "$actual" != "$expected" ]]; then
+    echo "Image '$key' Dockerfile $dockerfile has ARG BASE_IMAGE default '$actual', expected '$expected'." >&2
+    exit 1
+  fi
+done < <(jq -c '.[]' <<<"$images_with_paths")
+
 bake_json="$(LEMONADE_BAKE_DRY_RUN=1 .github/scripts/full-build-no-push.sh "$manifest")"
 jq -e --argjson images "$images_with_paths" '
   . as $bake
@@ -72,6 +115,12 @@ if command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; 
   docker compose -f docker-compose.yml config >/dev/null
 else
   echo "docker compose is not available; skipping Compose parser validation."
+fi
+
+if command -v python3 >/dev/null 2>&1; then
+  python3 .github/scripts/update_dependencies.py --manifest "$manifest" --validate-config
+else
+  echo "python3 is not available; skipping update_sources configuration validation."
 fi
 
 if command -v actionlint >/dev/null 2>&1; then

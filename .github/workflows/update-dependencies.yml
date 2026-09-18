@@ -1,0 +1,160 @@
+name: Update pinned dependencies
+
+# Checks upstream releases for the pinned Lemonade Server base image and for
+# every llama.cpp fork in .github/image-matrix.json, then opens or updates a
+# single pull request. It never publishes images: review and the existing
+# publish workflow stay in charge of that.
+
+on:
+  schedule:
+    # Mondays 06:30 UTC, shortly after the Dependabot GitHub Actions run.
+    - cron: "30 6 * * 1"
+  workflow_dispatch:
+    inputs:
+      sources:
+        description: "Comma-separated update_sources ids to check (empty = all)"
+        required: false
+        type: string
+        default: ""
+      dry_run:
+        description: "Only report available updates; do not change files or open a PR"
+        required: false
+        type: boolean
+        default: false
+      allow_partial:
+        description: "Apply sources that succeeded even if another source failed"
+        required: false
+        type: boolean
+        default: false
+
+permissions: {}
+
+concurrency:
+  group: update-dependencies
+  cancel-in-progress: false
+
+env:
+  UPDATE_BRANCH: automated/dependency-updates
+
+jobs:
+  update:
+    name: Check upstream releases
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Checkout
+        # actions/checkout v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+
+      - id: update
+        name: Check upstream releases and update pins
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ONLY_SOURCES: ${{ inputs.sources || '' }}
+          DRY_RUN: ${{ inputs.dry_run && 'true' || 'false' }}
+          ALLOW_PARTIAL: ${{ inputs.allow_partial && 'true' || 'false' }}
+        run: |
+          set -euo pipefail
+
+          args=(--repo-root . --summary-file "${RUNNER_TEMP}/update-summary.md")
+          if [[ -n "${ONLY_SOURCES}" ]]; then
+            args+=(--only "${ONLY_SOURCES}")
+          fi
+          if [[ "${DRY_RUN}" == "true" ]]; then
+            args+=(--check-only)
+          fi
+          if [[ "${ALLOW_PARTIAL}" == "true" ]]; then
+            args+=(--allow-partial)
+          fi
+
+          python3 .github/scripts/update_dependencies.py "${args[@]}"
+
+      - name: Publish run summary
+        if: always()
+        run: |
+          set -euo pipefail
+          if [[ -f "${RUNNER_TEMP}/update-summary.md" ]]; then
+            cat "${RUNNER_TEMP}/update-summary.md" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - id: changes
+        name: Detect working tree changes
+        if: steps.update.outputs.has_updates == 'true'
+        run: |
+          set -euo pipefail
+          if git diff --quiet; then
+            echo "has_changes=false" >> "$GITHUB_OUTPUT"
+            echo "Updater reported updates but produced no file changes."
+          else
+            echo "has_changes=true" >> "$GITHUB_OUTPUT"
+            git --no-pager diff --stat
+          fi
+
+      - name: Validate updated manifest and repository
+        if: steps.changes.outputs.has_changes == 'true'
+        run: |
+          set -euo pipefail
+          python3 .github/scripts/update_dependencies.py --validate-config
+          bash .github/scripts/static-checks.sh
+
+      - name: Create or update the dependency pull request
+        if: steps.changes.outputs.has_changes == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SOURCES: ${{ steps.update.outputs.sources }}
+        run: |
+          set -euo pipefail
+
+          bot_email="41898282+github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+          git config user.email "${bot_email}"
+
+          # The updater owns this branch exclusively. If someone pushed their own
+          # commit to it, stop instead of force-pushing over their work.
+          if git ls-remote --exit-code --heads origin "${UPDATE_BRANCH}" >/dev/null 2>&1; then
+            git fetch origin "${UPDATE_BRANCH}" --depth=1
+            existing_email="$(git log -1 --format='%ae' "origin/${UPDATE_BRANCH}")"
+            if [[ "${existing_email}" != "${bot_email}" ]]; then
+              echo "Refusing to overwrite ${UPDATE_BRANCH}: last commit is by ${existing_email}." >&2
+              exit 1
+            fi
+          fi
+
+          git switch --force-create "${UPDATE_BRANCH}"
+          git add --all
+          git commit \
+            --message "build: update pinned upstream releases" \
+            --message "${SOURCES}" \
+            --message "Co-authored-by: Copilot App <223556219+Copilot@users.noreply.github.com>"
+          git push --force origin "HEAD:refs/heads/${UPDATE_BRANCH}"
+
+          body_file="${RUNNER_TEMP}/pr-body.md"
+          {
+            cat "${RUNNER_TEMP}/update-summary.md"
+            echo
+            echo "---"
+            echo
+            echo "Opened by [\`update-dependencies.yml\`](${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID})."
+            echo "Checksums were computed from the downloaded release assets; no image was published."
+            echo "Because this branch is pushed with \`GITHUB_TOKEN\`, run **Validate container images**"
+            echo "manually (optionally with \`full_build=true\`) before merging."
+          } > "${body_file}"
+
+          title="build: update pinned upstream releases (${SOURCES})"
+          if pr_number="$(gh pr list --head "${UPDATE_BRANCH}" --state open --json number --jq '.[0].number')" \
+            && [[ -n "${pr_number}" && "${pr_number}" != "null" ]]; then
+            gh pr edit "${pr_number}" --title "${title}" --body-file "${body_file}"
+            echo "Updated PR #${pr_number}"
+          else
+            gh pr create \
+              --base "${GITHUB_REF_NAME}" \
+              --head "${UPDATE_BRANCH}" \
+              --title "${title}" \
+              --body-file "${body_file}"
+          fi
+
+      - name: Report no-op
+        if: steps.update.outputs.has_updates != 'true'
+        run: echo "No upstream updates found; no pull request was created."

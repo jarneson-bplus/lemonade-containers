@@ -10,6 +10,142 @@
       "ubuntu_codename": "noble"
     }
   },
+  "update_sources": {
+    "lemonade-server": {
+      "kind": "lemonade_server",
+      "name": "Lemonade Server base image",
+      "repository": "lemonade-sdk/lemonade",
+      "tag_pattern": "^v[0-9]+\\.[0-9]+\\.[0-9]+$",
+      "include_prereleases": false,
+      "container_image": "ghcr.io/lemonade-sdk/lemonade-server",
+      "propagate_files": [
+        "README.md",
+        "base/Dockerfile",
+        "base/Dockerfile.rocm",
+        "forks/atomic-turboquant/Dockerfile.vulkan",
+        "forks/cachyllama-heretek/Dockerfile",
+        "forks/cachyllama-heretek/Dockerfile.vulkan",
+        "forks/rocmfpx-heretek/Dockerfile"
+      ]
+    },
+    "atomic-turboquant": {
+      "kind": "github_release_assets",
+      "name": "AtomicBot TurboQuant llama.cpp fork",
+      "repository": "AtomicBot-ai/atomic-llama-cpp-turboquant",
+      "tag_pattern": "^b[0-9]+-[0-9]+\\.[0-9]+\\.[0-9]+$",
+      "include_prereleases": false,
+      "version_build_arg": "TURBOQUANT_VERSION",
+      "assets": [
+        {
+          "id": "rocm",
+          "asset_pattern": "^llama-turboquant-linux-x64-rocm\\.tar\\.gz$",
+          "gpu_target": null,
+          "build_args": [
+            {
+              "image": "atomic-turboquant-combined",
+              "asset": "TURBOQUANT_ROCM_ASSET",
+              "sha256": "TURBOQUANT_ROCM_SHA256"
+            }
+          ]
+        },
+        {
+          "id": "vulkan",
+          "asset_pattern": "^llama-turboquant-linux-x64-vulkan\\.tar\\.gz$",
+          "gpu_target": null,
+          "build_args": [
+            {
+              "image": "atomic-turboquant-combined",
+              "asset": "TURBOQUANT_VULKAN_ASSET",
+              "sha256": "TURBOQUANT_VULKAN_SHA256"
+            },
+            {
+              "image": "atomic-turboquant-vulkan",
+              "asset": "TURBOQUANT_ASSET",
+              "sha256": "TURBOQUANT_SHA256"
+            }
+          ]
+        }
+      ],
+      "propagate_files": [
+        "README.md",
+        "docker-compose.yml",
+        "forks/atomic-turboquant/Dockerfile",
+        "forks/atomic-turboquant/Dockerfile.vulkan"
+      ]
+    },
+    "cachyllama-heretek": {
+      "kind": "github_release_assets",
+      "name": "CachyLLama-BUILDER llama.cpp fork",
+      "repository": "Heretek-AI/CachyLLama-BUILDER",
+      "tag_pattern": "^b[0-9]+$",
+      "include_prereleases": false,
+      "version_build_arg": "CACHYLLAMA_VERSION",
+      "assets": [
+        {
+          "id": "rocm",
+          "asset_pattern": "^cachy-llama-{version}-ubuntu-rocm-gfx1151-x64\\.zip$",
+          "gpu_target": "gfx1151",
+          "build_args": [
+            {
+              "image": "cachyllama-heretek-combined",
+              "asset": "CACHYLLAMA_ROCM_ASSET",
+              "sha256": "CACHYLLAMA_ROCM_SHA256"
+            }
+          ]
+        },
+        {
+          "id": "vulkan",
+          "asset_pattern": "^cachy-llama-bin-ubuntu-vulkan-x64\\.tar\\.gz$",
+          "gpu_target": null,
+          "build_args": [
+            {
+              "image": "cachyllama-heretek-combined",
+              "asset": "CACHYLLAMA_VULKAN_ASSET",
+              "sha256": "CACHYLLAMA_VULKAN_SHA256"
+            },
+            {
+              "image": "cachyllama-heretek-vulkan",
+              "asset": "CACHYLLAMA_ASSET",
+              "sha256": "CACHYLLAMA_SHA256"
+            }
+          ]
+        }
+      ],
+      "propagate_files": [
+        "README.md",
+        "docker-compose.yml",
+        "forks/cachyllama-heretek/Dockerfile",
+        "forks/cachyllama-heretek/Dockerfile.vulkan"
+      ]
+    },
+    "rocmfpx-heretek": {
+      "kind": "github_release_assets",
+      "name": "ROCmFPX-BUILDER llama.cpp fork (kingjones30 variant)",
+      "repository": "Heretek-AI/ROCmFPX-BUILDER",
+      "tag_pattern": "^b[0-9]+$",
+      "include_prereleases": false,
+      "version_build_arg": "ROCMFPX_VERSION",
+      "assets": [
+        {
+          "id": "rocm",
+          "asset_pattern": "^kingjones-rocmfpx-{version}-ubuntu-rocm-gfx1151-x64\\.zip$",
+          "gpu_target": "gfx1151",
+          "build_args": [
+            {
+              "image": "rocmfpx-heretek-combined",
+              "asset": "ROCMFPX_ASSET",
+              "sha256": "ROCMFPX_SHA256"
+            }
+          ]
+        }
+      ],
+      "propagate_files": [
+        "README.md",
+        "docker-compose.yml",
+        "forks/rocmfpx-heretek/Dockerfile"
+      ]
+    }
+  },
   "images": [
     {
       "key": "runtime",
