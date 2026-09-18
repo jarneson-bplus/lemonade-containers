@@ -21,12 +21,12 @@
 # This Dockerfile does not hardcode a version/asset/checksum: you must pass
 # all three as build args, pinned to a specific release you have verified.
 #
-# Example build (kingjones30 fork, gfx1151 target, release b1045):
+# Example build (kingjones30 fork, gfx1151 target, release b1050):
 #   docker build \
-#     --build-arg ROCMFPX_VERSION=b1045 \
-#     --build-arg ROCMFPX_ASSET=kingjones-rocmfpx-b1045-ubuntu-rocm-gfx1151-x64.zip \
-#     --build-arg ROCMFPX_SHA256=75ecc080e75e59f55c047eff9023d41ff0c085fc2d8ac83cb953ebd810e51b28 \
-#     -t lemonade-rocmfpx:combined-b1045-gfx1151 \
+#     --build-arg ROCMFPX_VERSION=b1050 \
+#     --build-arg ROCMFPX_ASSET=kingjones-rocmfpx-b1050-ubuntu-rocm-gfx1151-x64.zip \
+#     --build-arg ROCMFPX_SHA256=2d39092220dadbf3cbc093274146b115af448f514a102a2347bd0a06e6470f9f \
+#     -t lemonade-rocmfpx:combined-b1050-gfx1151 \
 #     -f forks/rocmfpx-heretek/Dockerfile forks/rocmfpx-heretek
 #
 # For any other variant/GPU target, look up the exact asset filename and

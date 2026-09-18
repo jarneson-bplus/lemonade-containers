@@ -111,10 +111,10 @@ path is exposed as both `rocm_bin` and `vulkan_bin`.
 ```sh
 docker build \
   --build-arg BASE_IMAGE=lemonade-runtime:lemonade-v11.9.0 \
-  --build-arg ROCMFPX_VERSION=b1045 \
-  --build-arg ROCMFPX_ASSET=kingjones-rocmfpx-b1045-ubuntu-rocm-gfx1151-x64.zip \
-  --build-arg ROCMFPX_SHA256=75ecc080e75e59f55c047eff9023d41ff0c085fc2d8ac83cb953ebd810e51b28 \
-  -t lemonade-rocmfpx:combined-b1045-gfx1151 \
+  --build-arg ROCMFPX_VERSION=b1050 \
+  --build-arg ROCMFPX_ASSET=kingjones-rocmfpx-b1050-ubuntu-rocm-gfx1151-x64.zip \
+  --build-arg ROCMFPX_SHA256=2d39092220dadbf3cbc093274146b115af448f514a102a2347bd0a06e6470f9f \
+  -t lemonade-rocmfpx:combined-b1050-gfx1151 \
   -f forks/rocmfpx-heretek/Dockerfile forks/rocmfpx-heretek
 ```
 
@@ -231,7 +231,7 @@ Default package/tag scheme:
 | Atomic TurboQuant Vulkan-only | `ghcr.io/${OWNER}/lemonade-atomic-turboquant` | `vulkan-b10269-1.6.0` | `v1.0.0-vulkan-b10269-1.6.0` |
 | CachyLlama combined | `ghcr.io/${OWNER}/lemonade-cachyllama` | `combined-b1036-gfx1151` | `v1.0.0-combined-b1036-gfx1151` |
 | CachyLlama Vulkan-only | `ghcr.io/${OWNER}/lemonade-cachyllama` | `vulkan-b1036` | `v1.0.0-vulkan-b1036` |
-| ROCmFPX combined | `ghcr.io/${OWNER}/lemonade-rocmfpx` | `combined-b1045-gfx1151` | `v1.0.0-combined-b1045-gfx1151` |
+| ROCmFPX combined | `ghcr.io/${OWNER}/lemonade-rocmfpx` | `combined-b1050-gfx1151` | `v1.0.0-combined-b1050-gfx1151` |
 
 Example pulls:
 
@@ -243,7 +243,7 @@ docker pull ghcr.io/${OWNER}/lemonade-atomic-turboquant:combined-b10269-1.6.0
 docker pull ghcr.io/${OWNER}/lemonade-atomic-turboquant:vulkan-b10269-1.6.0
 docker pull ghcr.io/${OWNER}/lemonade-cachyllama:combined-b1036-gfx1151
 docker pull ghcr.io/${OWNER}/lemonade-cachyllama:vulkan-b1036
-docker pull ghcr.io/${OWNER}/lemonade-rocmfpx:combined-b1045-gfx1151
+docker pull ghcr.io/${OWNER}/lemonade-rocmfpx:combined-b1050-gfx1151
 ```
 
 To publish a repository release build:

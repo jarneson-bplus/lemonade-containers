@@ -22,7 +22,7 @@ services:
   # its config exposes the same llama-server path for both backends. The image
   # uses the common runtime base because Heretek bundles its ROCm libraries.
   lemonade-rocmfpx-kingjones30-combined:
-    image: ${IMAGE_PREFIX:-}lemonade-rocmfpx:combined-b1045-gfx1151
+    image: ${IMAGE_PREFIX:-}lemonade-rocmfpx:combined-b1050-gfx1151
     ports:
       # Prefer binding to 127.0.0.1 over 0.0.0.0 unless you specifically need
       # to expose the API to other hosts on your network.
