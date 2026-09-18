@@ -1,16 +1,8 @@
 # Vulkan-only variant of the CachyLLama-BUILDER fork image.
 #
-# Vulkan needs no ROCm userspace runtime, so this variant builds directly
-# FROM the pinned upstream lemonade-server image (Vulkan libraries are already
-# part of that image's apt install list) instead of the shared
-# lemonade-rocm-runtime base used by the combined ROCm+Vulkan variant
-# (Dockerfile).
-#
-# Because it skips the shared rocm-runtime base, this Dockerfile re-applies
-# the two things that base normally provides: the render/video group
-# membership for device passthrough, and the generic config-seeding
-# entrypoint script. Build with the repo root as context so it can reach
-# ../../base/docker-entrypoint.sh, e.g.:
+# Vulkan needs no ROCm userspace runtime, so this variant builds FROM the
+# lightweight lemonade-runtime base rather than lemonade-rocm-runtime. Build
+# with the repo root as context, e.g.:
 #
 #   docker build \
 #     -f forks/cachyllama-heretek/Dockerfile.vulkan \
@@ -19,7 +11,7 @@
 #
 # No version/asset/checksum defaults are hardcoded on purpose -- pass all
 # three as build args, pinned to a release you have verified yourself.
-ARG BASE_IMAGE=ghcr.io/lemonade-sdk/lemonade-server:v11.9.0
+ARG BASE_IMAGE=lemonade-runtime:lemonade-v11.9.0
 FROM ${BASE_IMAGE}
 
 USER root
@@ -31,10 +23,6 @@ ARG CACHYLLAMA_SHA256
 RUN test -n "${CACHYLLAMA_VERSION}" || (echo "CACHYLLAMA_VERSION build-arg is required" >&2 && false) \
     && test -n "${CACHYLLAMA_ASSET}" || (echo "CACHYLLAMA_ASSET build-arg is required" >&2 && false) \
     && test -n "${CACHYLLAMA_SHA256}" || (echo "CACHYLLAMA_SHA256 build-arg is required" >&2 && false)
-
-RUN groupadd -f render \
-    && groupadd -f video \
-    && usermod -aG render,video lemonade
 
 RUN mkdir -p /opt/lemonade/custom-bin/cachyllama/vulkan \
     && cd /tmp \
@@ -49,10 +37,6 @@ RUN mkdir -p /opt/lemonade/custom-bin/cachyllama/vulkan \
 COPY forks/cachyllama-heretek/config.default.vulkan.json /usr/local/share/lemonade/config.default.json
 RUN chown lemonade:lemonade /usr/local/share/lemonade/config.default.json
 
-COPY base/docker-entrypoint.sh /usr/local/bin/lemonade-entrypoint
-RUN chmod +x /usr/local/bin/lemonade-entrypoint
-
 USER lemonade
 
-ENTRYPOINT ["/usr/local/bin/lemonade-entrypoint"]
-CMD ["./lemond", "--host", "0.0.0.0"]
+# ENTRYPOINT/CMD inherited from the common runtime image.

@@ -1,0 +1,45 @@
+# ROCm userspace runtime base for fork images that do not bundle ROCm libs.
+#
+# This builds FROM the lightweight lemonade-runtime base and adds ROCm 7.2.1
+# userspace libraries under /opt/rocm. Use it only for upstream distributions
+# that require container-provided ROCm libraries.
+#
+# Build:
+#   docker build \
+#     --build-arg BASE_IMAGE=lemonade-runtime:lemonade-v11.9.0 \
+#     -t lemonade-rocm-runtime:rocm-7.2.1 \
+#     -f base/Dockerfile.rocm base
+ARG BASE_IMAGE=lemonade-runtime:lemonade-v11.9.0
+FROM ${BASE_IMAGE}
+
+ARG ROCM_VERSION=7.2.1
+ARG UBUNTU_CODENAME=noble
+
+USER root
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        ca-certificates \
+        curl \
+        gnupg \
+    && mkdir -p --mode=0755 /etc/apt/keyrings \
+    && curl -fsSL https://repo.radeon.com/rocm/rocm.gpg.key \
+        | gpg --dearmor -o /etc/apt/keyrings/rocm.gpg \
+    && echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/rocm.gpg] https://repo.radeon.com/rocm/apt/${ROCM_VERSION} ${UBUNTU_CODENAME} main" \
+        > /etc/apt/sources.list.d/rocm.list \
+    && echo "Package: *" > /etc/apt/preferences.d/rocm-pin-600 \
+    && echo "Pin: release o=repo.radeon.com" >> /etc/apt/preferences.d/rocm-pin-600 \
+    && echo "Pin-Priority: 600" >> /etc/apt/preferences.d/rocm-pin-600 \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends \
+        rocm-libs \
+        hip-runtime-amd \
+        rocblas \
+        hipblas \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+ENV LD_LIBRARY_PATH="/opt/rocm/lib" \
+    PATH="/opt/rocm/bin:${PATH}"
+
+USER lemonade

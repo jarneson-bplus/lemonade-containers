@@ -24,9 +24,14 @@ while IFS= read -r image; do
   )"
   contexts="{}"
 
-  if [[ "$depends_on" == "base" ]]; then
-    args="$(jq -c '. + {"BASE_IMAGE": "lemonade-rocm-runtime:rocm-7.2.1"}' <<<"$args")"
-    contexts='{"lemonade-rocm-runtime:rocm-7.2.1":"target:base"}'
+  if [[ -n "$depends_on" ]]; then
+    dependency="$(
+      .github/scripts/manifest-images-with-paths.sh "$manifest" \
+        | jq -c --arg depends_on "$depends_on" '.[] | select(.key == $depends_on)'
+    )"
+    dependency_ref="$(jq -r '.package + ":" + .default_tag' <<<"$dependency")"
+    args="$(jq -c --arg dependency_ref "$dependency_ref" '. + {"BASE_IMAGE": $dependency_ref}' <<<"$args")"
+    contexts="$(jq -nc --arg dependency_ref "$dependency_ref" --arg depends_on "$depends_on" '{($dependency_ref): ("target:" + $depends_on)}')"
   fi
 
   jq -n \

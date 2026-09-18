@@ -28,13 +28,19 @@ jobs:
     outputs:
       release_prefix: ${{ steps.outputs.outputs.release_prefix }}
       has_release_prefix: ${{ steps.outputs.outputs.has_release_prefix }}
+      runtime_package: ${{ steps.outputs.outputs.runtime_package }}
+      runtime_context: ${{ steps.outputs.outputs.runtime_context }}
+      runtime_dockerfile: ${{ steps.outputs.outputs.runtime_dockerfile }}
+      runtime_default_tag: ${{ steps.outputs.outputs.runtime_default_tag }}
+      runtime_cache_scope: ${{ steps.outputs.outputs.runtime_cache_scope }}
+      runtime_build_args: ${{ steps.outputs.outputs.runtime_build_args }}
+      rocm_package: ${{ steps.outputs.outputs.rocm_package }}
+      rocm_context: ${{ steps.outputs.outputs.rocm_context }}
+      rocm_dockerfile: ${{ steps.outputs.outputs.rocm_dockerfile }}
+      rocm_default_tag: ${{ steps.outputs.outputs.rocm_default_tag }}
+      rocm_cache_scope: ${{ steps.outputs.outputs.rocm_cache_scope }}
+      rocm_build_args: ${{ steps.outputs.outputs.rocm_build_args }}
       derived_images: ${{ steps.outputs.outputs.derived_images }}
-      base_package: ${{ steps.outputs.outputs.base_package }}
-      base_context: ${{ steps.outputs.outputs.base_context }}
-      base_dockerfile: ${{ steps.outputs.outputs.base_dockerfile }}
-      base_default_tag: ${{ steps.outputs.outputs.base_default_tag }}
-      base_cache_scope: ${{ steps.outputs.outputs.base_cache_scope }}
-      base_build_args: ${{ steps.outputs.outputs.base_build_args }}
     steps:
       - name: Checkout
         # actions/checkout v4
@@ -63,27 +69,39 @@ jobs:
             has_release_prefix="false"
           fi
 
+          images_with_paths="$(.github/scripts/manifest-images-with-paths.sh .github/image-matrix.json)"
+
           {
             echo "release_prefix=${release_prefix}"
             echo "has_release_prefix=${has_release_prefix}"
-            images_with_paths="$(.github/scripts/manifest-images-with-paths.sh .github/image-matrix.json)"
-            echo "base_package=$(jq -r '.[] | select(.key == "base").package' <<<"${images_with_paths}")"
-            echo "base_context=$(jq -r '.[] | select(.key == "base").context' <<<"${images_with_paths}")"
-            echo "base_dockerfile=$(jq -r '.[] | select(.key == "base").dockerfile' <<<"${images_with_paths}")"
-            echo "base_default_tag=$(jq -r '.[] | select(.key == "base").default_tag' <<<"${images_with_paths}")"
-            echo "base_cache_scope=$(jq -r '.[] | select(.key == "base").cache_scope' <<<"${images_with_paths}")"
-            echo "derived_images=$(jq -c '[.[] | select(.key != "base") | . + {build_args_text: (.build_args | join("\n"))}]' <<<"${images_with_paths}")"
-            echo "base_build_args<<EOF"
-            jq -r '.[] | select(.key == "base").build_args | join("\n")' <<<"${images_with_paths}"
+
+            echo "runtime_package=$(jq -r '.[] | select(.key == "runtime").package' <<<"${images_with_paths}")"
+            echo "runtime_context=$(jq -r '.[] | select(.key == "runtime").context' <<<"${images_with_paths}")"
+            echo "runtime_dockerfile=$(jq -r '.[] | select(.key == "runtime").dockerfile' <<<"${images_with_paths}")"
+            echo "runtime_default_tag=$(jq -r '.[] | select(.key == "runtime").default_tag' <<<"${images_with_paths}")"
+            echo "runtime_cache_scope=$(jq -r '.[] | select(.key == "runtime").cache_scope' <<<"${images_with_paths}")"
+            echo "runtime_build_args<<EOF"
+            jq -r '.[] | select(.key == "runtime").build_args | join("\n")' <<<"${images_with_paths}"
             echo "EOF"
+
+            echo "rocm_package=$(jq -r '.[] | select(.key == "rocm-runtime").package' <<<"${images_with_paths}")"
+            echo "rocm_context=$(jq -r '.[] | select(.key == "rocm-runtime").context' <<<"${images_with_paths}")"
+            echo "rocm_dockerfile=$(jq -r '.[] | select(.key == "rocm-runtime").dockerfile' <<<"${images_with_paths}")"
+            echo "rocm_default_tag=$(jq -r '.[] | select(.key == "rocm-runtime").default_tag' <<<"${images_with_paths}")"
+            echo "rocm_cache_scope=$(jq -r '.[] | select(.key == "rocm-runtime").cache_scope' <<<"${images_with_paths}")"
+            echo "rocm_build_args<<EOF"
+            jq -r '.[] | select(.key == "rocm-runtime").build_args | map(select(startswith("BASE_IMAGE=") | not)) | join("\n")' <<<"${images_with_paths}"
+            echo "EOF"
+
+            echo "derived_images=$(jq -c '[.[] | select(.key != "runtime" and .key != "rocm-runtime") | . + {build_args_text: (.build_args | map(select(startswith("BASE_IMAGE=") | not)) | join("\n"))}]' <<<"${images_with_paths}")"
           } >> "$GITHUB_OUTPUT"
 
-  publish-base:
-    name: Publish shared ROCm runtime base
+  publish-runtime:
+    name: Publish common Lemonade runtime base
     runs-on: ubuntu-24.04
     needs: prepare
     outputs:
-      base_ref: ${{ steps.base-ref.outputs.base_ref }}
+      runtime_ref: ${{ steps.runtime-ref.outputs.runtime_ref }}
     steps:
       - name: Checkout
         # actions/checkout v4
@@ -102,45 +120,117 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - id: meta
-        name: Generate base metadata
+        name: Generate runtime metadata
         # docker/metadata-action v5
         uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051
         with:
-          images: ghcr.io/${{ github.repository_owner }}/${{ needs.prepare.outputs.base_package }}
+          images: ghcr.io/${{ github.repository_owner }}/${{ needs.prepare.outputs.runtime_package }}
           tags: |
-            type=raw,value=${{ needs.prepare.outputs.base_default_tag }}
-            type=raw,value=${{ needs.prepare.outputs.release_prefix }}-${{ needs.prepare.outputs.base_default_tag }},enable=${{ needs.prepare.outputs.has_release_prefix == 'true' }}
+            type=raw,value=${{ needs.prepare.outputs.runtime_default_tag }}
+            type=raw,value=${{ needs.prepare.outputs.release_prefix }}-${{ needs.prepare.outputs.runtime_default_tag }},enable=${{ needs.prepare.outputs.has_release_prefix == 'true' }}
           labels: |
             org.opencontainers.image.source=https://github.com/${{ github.repository }}
             org.opencontainers.image.revision=${{ github.sha }}
 
       - id: build
-        name: Build and push base image
+        name: Build and push common runtime image
         # docker/build-push-action v6
         uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8
         with:
-          context: ${{ needs.prepare.outputs.base_context }}
-          file: ${{ needs.prepare.outputs.base_dockerfile }}
+          context: ${{ needs.prepare.outputs.runtime_context }}
+          file: ${{ needs.prepare.outputs.runtime_dockerfile }}
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          build-args: ${{ needs.prepare.outputs.base_build_args }}
-          cache-from: type=gha,scope=${{ needs.prepare.outputs.base_cache_scope }}
-          cache-to: type=gha,mode=max,scope=${{ needs.prepare.outputs.base_cache_scope }}
+          build-args: ${{ needs.prepare.outputs.runtime_build_args }}
+          cache-from: type=gha,scope=${{ needs.prepare.outputs.runtime_cache_scope }}
+          cache-to: type=gha,mode=max,scope=${{ needs.prepare.outputs.runtime_cache_scope }}
           provenance: true
           sbom: true
 
-      - id: base-ref
-        name: Export base digest reference
+      - id: runtime-ref
+        name: Export runtime digest reference
         run: |
-          echo "base_ref=ghcr.io/${{ github.repository_owner }}/${{ needs.prepare.outputs.base_package }}@${{ steps.build.outputs.digest }}" >> "$GITHUB_OUTPUT"
+          echo "runtime_ref=ghcr.io/${{ github.repository_owner }}/${{ needs.prepare.outputs.runtime_package }}@${{ steps.build.outputs.digest }}" >> "$GITHUB_OUTPUT"
+
+  publish-rocm-runtime:
+    name: Publish ROCm userspace runtime base
+    runs-on: ubuntu-24.04
+    needs:
+      - prepare
+      - publish-runtime
+    outputs:
+      rocm_ref: ${{ steps.rocm-ref.outputs.rocm_ref }}
+    steps:
+      - name: Checkout
+        # actions/checkout v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+
+      - name: Set up Docker Buildx
+        # docker/setup-buildx-action v3
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f
+
+      - name: Log in to GHCR
+        # docker/login-action v3
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - id: build-args
+        name: Prepare ROCm runtime build args
+        env:
+          BUILD_ARGS_TEXT: ${{ needs.prepare.outputs.rocm_build_args }}
+        run: |
+          {
+            echo "build_args<<EOF"
+            printf '%s\n' "${BUILD_ARGS_TEXT}"
+            echo "BASE_IMAGE=${{ needs.publish-runtime.outputs.runtime_ref }}"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - id: meta
+        name: Generate ROCm runtime metadata
+        # docker/metadata-action v5
+        uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051
+        with:
+          images: ghcr.io/${{ github.repository_owner }}/${{ needs.prepare.outputs.rocm_package }}
+          tags: |
+            type=raw,value=${{ needs.prepare.outputs.rocm_default_tag }}
+            type=raw,value=${{ needs.prepare.outputs.release_prefix }}-${{ needs.prepare.outputs.rocm_default_tag }},enable=${{ needs.prepare.outputs.has_release_prefix == 'true' }}
+          labels: |
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+
+      - id: build
+        name: Build and push ROCm runtime image
+        # docker/build-push-action v6
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8
+        with:
+          context: ${{ needs.prepare.outputs.rocm_context }}
+          file: ${{ needs.prepare.outputs.rocm_dockerfile }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: ${{ steps.build-args.outputs.build_args }}
+          cache-from: type=gha,scope=${{ needs.prepare.outputs.rocm_cache_scope }}
+          cache-to: type=gha,mode=max,scope=${{ needs.prepare.outputs.rocm_cache_scope }}
+          provenance: true
+          sbom: true
+
+      - id: rocm-ref
+        name: Export ROCm runtime digest reference
+        run: |
+          echo "rocm_ref=ghcr.io/${{ github.repository_owner }}/${{ needs.prepare.outputs.rocm_package }}@${{ steps.build.outputs.digest }}" >> "$GITHUB_OUTPUT"
 
   publish-derived:
     name: Publish ${{ matrix.image.name }}
     runs-on: ubuntu-24.04
     needs:
       - prepare
-      - publish-base
+      - publish-runtime
+      - publish-rocm-runtime
     strategy:
       fail-fast: false
       matrix:
@@ -170,9 +260,18 @@ jobs:
           {
             echo "build_args<<EOF"
             printf '%s\n' "${BUILD_ARGS_TEXT}"
-            if [[ "${{ matrix.image.depends_on }}" == "base" ]]; then
-              echo "BASE_IMAGE=${{ needs.publish-base.outputs.base_ref }}"
-            fi
+            case "${{ matrix.image.depends_on }}" in
+              runtime)
+                echo "BASE_IMAGE=${{ needs.publish-runtime.outputs.runtime_ref }}"
+                ;;
+              rocm-runtime)
+                echo "BASE_IMAGE=${{ needs.publish-rocm-runtime.outputs.rocm_ref }}"
+                ;;
+              *)
+                echo "Unsupported dependency '${{ matrix.image.depends_on }}'" >&2
+                exit 1
+                ;;
+            esac
             echo "EOF"
           } >> "$GITHUB_OUTPUT"
 

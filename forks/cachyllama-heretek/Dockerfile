@@ -8,12 +8,14 @@
 # $ORIGIN RPATH, so each archive must be extracted whole into its own
 # directory -- copying just the binary will fail to find its libs at runtime.
 #
-# This Dockerfile builds the combined ROCm+Vulkan image. It layers on top of
-# the shared lemonade-rocm-runtime base image, then downloads the separately
-# published ROCm and Vulkan archives into distinct directories so users can
-# switch `llamacpp.backend` from `rocm` to `vulkan` in the seeded config.json
-# without rebuilding the image. See Dockerfile.vulkan in this same directory
-# for the smaller Vulkan-only image.
+# This Dockerfile builds the combined ROCm+Vulkan image. It intentionally uses
+# the lightweight lemonade-runtime base, not lemonade-rocm-runtime: Heretek's
+# ROCm archives bundle their required ROCm runtime libraries next to
+# `llama-server` with $ORIGIN RPATH, and /opt/rocm LD_LIBRARY_PATH could shadow
+# those moving TheRock nightly libraries. The ROCm and Vulkan archives are
+# extracted whole into distinct directories so users can switch
+# `llamacpp.backend` from `rocm` to `vulkan` in the seeded config.json without
+# rebuilding. See Dockerfile.vulkan for the smaller Vulkan-only image.
 #
 # This Dockerfile does not hardcode versions/assets/checksums: you must pass
 # all backend build args, pinned to a specific release you have verified.
@@ -31,7 +33,7 @@
 # For any other GPU target or release, look up the exact asset filename and
 # compute its sha256 yourself from the actual release download -- do not
 # reuse the checksums above for different assets.
-ARG BASE_IMAGE=lemonade-rocm-runtime:rocm-7.2.1
+ARG BASE_IMAGE=lemonade-runtime:lemonade-v11.9.0
 FROM ${BASE_IMAGE}
 
 USER root

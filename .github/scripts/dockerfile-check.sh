@@ -13,7 +13,7 @@ while IFS= read -r image; do
     build_args+=(--build-arg "$arg")
   done < <(jq -r '.build_args[]' <<<"$image")
 
-  if [[ "$(jq -r '.depends_on // ""' <<<"$image")" == "base" ]]; then
+  if [[ "$(jq -r '.depends_on // ""' <<<"$image")" != "" ]]; then
     build_args+=(--build-arg "BASE_IMAGE=ghcr.io/lemonade-sdk/lemonade-server:v11.9.0")
   fi
 

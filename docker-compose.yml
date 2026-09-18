@@ -19,7 +19,8 @@ services:
   # Combined ROCm+Vulkan build: kingjones30/ROCmFPX via
   # Heretek-AI/ROCmFPX-BUILDER. Upstream publishes ROCm zip assets only, but
   # the Linux build is compiled with both GGML_HIP and GGML_VULKAN enabled, so
-  # its config exposes the same llama-server path for both backends.
+  # its config exposes the same llama-server path for both backends. The image
+  # uses the common runtime base because Heretek bundles its ROCm libraries.
   lemonade-rocmfpx-kingjones30-combined:
     image: ${IMAGE_PREFIX:-}lemonade-rocmfpx:combined-b1045-gfx1151
     ports:
@@ -40,7 +41,8 @@ services:
     restart: unless-stopped
 
   # Combined ROCm+Vulkan build: fewtarius/CachyLLama via
-  # Heretek-AI/CachyLLama-BUILDER.
+  # Heretek-AI/CachyLLama-BUILDER. The image uses the common runtime base
+  # because Heretek bundles its ROCm libraries.
   lemonade-cachyllama-combined:
     image: ${IMAGE_PREFIX:-}lemonade-cachyllama:combined-b1036-gfx1151
     ports:
@@ -77,6 +79,7 @@ services:
     restart: unless-stopped
 
   # Combined ROCm+Vulkan build: AtomicBot-ai/atomic-llama-cpp-turboquant.
+  # Atomic's ROCm tarball needs the separate lemonade-rocm-runtime base.
   lemonade-atomic-turboquant-combined:
     image: ${IMAGE_PREFIX:-}lemonade-atomic-turboquant:combined-b10269-1.6.0
     ports:
