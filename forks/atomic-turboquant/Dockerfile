@@ -5,12 +5,12 @@
 # llama-turboquant-linux-x64-rocm.tar.gz / -vulkan.tar.gz / -cuda-12.4.tar.gz /
 # -cpu.tar.gz, under a shared release tag like `b10269-1.6.0`.
 #
-# This Dockerfile builds the combined ROCm+Vulkan image. It layers on top of
-# the shared lemonade-rocm-runtime base image, then downloads the separately
-# published ROCm and Vulkan tarballs into distinct directories so users can
-# switch `llamacpp.backend` from `rocm` to `vulkan` in the seeded config.json
-# without rebuilding the image. See Dockerfile.vulkan in this same directory
-# for the smaller Vulkan-only image.
+# This Dockerfile builds the combined ROCm+Vulkan image. Atomic's ROCm asset
+# does not bundle full ROCm userspace, so this image intentionally layers on
+# the lemonade-rocm-runtime base. It downloads the separately published ROCm
+# and Vulkan tarballs into distinct directories so users can switch
+# `llamacpp.backend` from `rocm` to `vulkan` in the seeded config.json without
+# rebuilding the image. See Dockerfile.vulkan for the smaller Vulkan-only image.
 #
 # No version/asset/checksum defaults are hardcoded on purpose -- pass all
 # backend assets and checksums as build args, pinned to a release you have

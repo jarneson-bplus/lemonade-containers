@@ -21,6 +21,31 @@ jq -e '
     and all(.build_args[]; test("^[A-Z0-9_]+=")))
 ' "$manifest" >/dev/null
 
+jq -e '
+  .images as $images
+  | def image($key): $images[] | select(.key == $key);
+  def keys_before($index): [range(0; $index) as $i | $images[$i].key];
+  ([.images[].depends_on // empty] - [.images[].key] | length == 0)
+  and all(range(0; ($images | length)); . as $i |
+    ($images[$i].depends_on == null)
+    or ((keys_before($i) | index($images[$i].depends_on)) != null))
+  and (image("runtime").depends_on == null)
+  and (image("runtime").package == "lemonade-runtime")
+  and (image("rocm-runtime").depends_on == "runtime")
+  and (image("rocm-runtime").package == "lemonade-rocm-runtime")
+  and (image("atomic-turboquant-combined").depends_on == "rocm-runtime")
+  and (image("atomic-turboquant-vulkan").depends_on == "runtime")
+  and (image("cachyllama-heretek-combined").depends_on == "runtime")
+  and (image("cachyllama-heretek-vulkan").depends_on == "runtime")
+  and (image("rocmfpx-heretek-combined").depends_on == "runtime")
+' "$manifest" >/dev/null
+
+if grep -RInE '^(ARG BASE_IMAGE=lemonade-rocm-runtime|ENV .*(/opt/rocm|rocm))' \
+  forks/cachyllama-heretek forks/rocmfpx-heretek; then
+  echo "Heretek Dockerfiles must not inherit or set the shared /opt/rocm runtime; their archives bundle ROCm libraries." >&2
+  exit 1
+fi
+
 images_with_paths="$(.github/scripts/manifest-images-with-paths.sh "$manifest")"
 
 bake_json="$(LEMONADE_BAKE_DRY_RUN=1 .github/scripts/full-build-no-push.sh "$manifest")"
