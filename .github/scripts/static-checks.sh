@@ -52,9 +52,9 @@ jq -e '
     ($images[$i].depends_on == null)
     or ((keys_before($i) | index($images[$i].depends_on)) != null))
   and (image("runtime").depends_on == null)
-  and (image("runtime").package == "lemonade-runtime")
+  and (image("runtime").package == "lemon-base")
   and (image("rocm-runtime").depends_on == "runtime")
-  and (image("rocm-runtime").package == "lemonade-rocm-runtime")
+  and (image("rocm-runtime").package == "rocm-lemon")
   and (image("atomic-turboquant-combined").depends_on == "rocm-runtime")
   and (image("atomic-turboquant-vulkan").depends_on == "runtime")
   and (image("cachyllama-heretek-combined").depends_on == "runtime")
@@ -62,7 +62,7 @@ jq -e '
   and (image("rocmfpx-heretek-combined").depends_on == "runtime")
 ' "$manifest" >/dev/null
 
-if grep -RInE '^(ARG BASE_IMAGE=lemonade-rocm-runtime|ENV .*(/opt/rocm|rocm))' \
+if grep -RInE '^(ARG BASE_IMAGE=rocm-lemon|ENV .*(/opt/rocm|rocm))' \
   forks/cachyllama-heretek forks/rocmfpx-heretek; then
   echo "Heretek Dockerfiles must not inherit or set the shared /opt/rocm runtime; their archives bundle ROCm libraries." >&2
   exit 1

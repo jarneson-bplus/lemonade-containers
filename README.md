@@ -13,8 +13,8 @@ package split in this version is a safe pre-publication correction.
 
 ```
 base/
-  Dockerfile            # lemonade-runtime: pinned Lemonade + entrypoint + groups
-  Dockerfile.rocm       # lemonade-rocm-runtime: common runtime + ROCm apt userspace
+  Dockerfile            # lemon-base: pinned Lemonade + entrypoint + groups
+  Dockerfile.rocm       # rocm-lemon: common runtime + ROCm apt userspace
   docker-entrypoint.sh  # seeds config.json into mounted config dir on first run
 forks/
   rocmfpx-heretek/
@@ -36,7 +36,7 @@ config/                 # example bind-mount targets for docker-compose.yml
 
 ## Runtime base layers
 
-### `lemonade-runtime` (`base/Dockerfile`)
+### `lemon-base` (`base/Dockerfile`)
 
 Builds `FROM ghcr.io/lemonade-sdk/lemonade-server:v11.9.0`, a pinned Lemonade
 release tag. It adds only shared runtime behavior:
@@ -58,13 +58,13 @@ It intentionally contains **no ROCm apt repository/packages** and sets no
 
 ```sh
 docker build \
-  -t lemonade-runtime:lemonade-v11.9.0 \
+  -t lemon-base:lemonade-v11.9.0 \
   -f base/Dockerfile base
 ```
 
-### `lemonade-rocm-runtime` (`base/Dockerfile.rocm`)
+### `rocm-lemon` (`base/Dockerfile.rocm`)
 
-Builds `FROM lemonade-runtime:lemonade-v11.9.0` and adds ROCm 7.2.1 userspace
+Builds `FROM lemon-base:lemonade-v11.9.0` and adds ROCm 7.2.1 userspace
 libraries from `repo.radeon.com`: `rocm-libs hip-runtime-amd rocblas hipblas`.
 It sets `LD_LIBRARY_PATH=/opt/rocm/lib` and prepends `/opt/rocm/bin` to `PATH`.
 Use this base only for upstream fork distributions that require ROCm libraries
@@ -72,10 +72,10 @@ from the container.
 
 ```sh
 docker build \
-  --build-arg BASE_IMAGE=lemonade-runtime:lemonade-v11.9.0 \
+  --build-arg BASE_IMAGE=lemon-base:lemonade-v11.9.0 \
   --build-arg ROCM_VERSION=7.2.1 \
   --build-arg UBUNTU_CODENAME=noble \
-  -t lemonade-rocm-runtime:rocm-7.2.1 \
+  -t rocm-lemon:rocm-7.2.1 \
   -f base/Dockerfile.rocm base
 ```
 
@@ -83,13 +83,13 @@ docker build \
 
 | Image | Base | Why |
 | --- | --- | --- |
-| Atomic TurboQuant combined ROCm+Vulkan | `lemonade-rocm-runtime` | Atomic's ROCm release does not bundle full ROCm userspace, so the container must provide ROCm libraries. |
-| Atomic TurboQuant Vulkan-only | `lemonade-runtime` | Vulkan needs no ROCm apt runtime. |
-| CachyLlama Heretek combined ROCm+Vulkan | `lemonade-runtime` | Heretek ROCm archives bundle sibling ROCm libraries with `$ORIGIN` RPATH. |
-| CachyLlama Heretek Vulkan-only | `lemonade-runtime` | Vulkan needs no ROCm apt runtime. |
-| ROCmFPX Heretek combined HIP+Vulkan | `lemonade-runtime` | Heretek ROCm archives bundle sibling ROCm libraries with `$ORIGIN` RPATH. |
+| Atomic TurboQuant combined ROCm+Vulkan | `rocm-lemon` | Atomic's ROCm release does not bundle full ROCm userspace, so the container must provide ROCm libraries. |
+| Atomic TurboQuant Vulkan-only | `lemon-base` | Vulkan needs no ROCm apt runtime. |
+| CachyLlama Heretek combined ROCm+Vulkan | `lemon-base` | Heretek ROCm archives bundle sibling ROCm libraries with `$ORIGIN` RPATH. |
+| CachyLlama Heretek Vulkan-only | `lemon-base` | Vulkan needs no ROCm apt runtime. |
+| ROCmFPX Heretek combined HIP+Vulkan | `lemon-base` | Heretek ROCm archives bundle sibling ROCm libraries with `$ORIGIN` RPATH. |
 
-The Heretek ROCm images deliberately avoid `lemonade-rocm-runtime`; a global
+The Heretek ROCm images deliberately avoid `rocm-lemon`; a global
 `LD_LIBRARY_PATH=/opt/rocm/lib` could shadow the bundled libraries that were
 built against moving TheRock nightly versions.
 
@@ -110,11 +110,11 @@ path is exposed as both `rocm_bin` and `vulkan_bin`.
 
 ```sh
 docker build \
-  --build-arg BASE_IMAGE=lemonade-runtime:lemonade-v11.9.0 \
+  --build-arg BASE_IMAGE=lemon-base:lemonade-v11.9.0 \
   --build-arg ROCMFPX_VERSION=b1050 \
   --build-arg ROCMFPX_ASSET=kingjones-rocmfpx-b1050-ubuntu-rocm-gfx1151-x64.zip \
   --build-arg ROCMFPX_SHA256=2d39092220dadbf3cbc093274146b115af448f514a102a2347bd0a06e6470f9f \
-  -t lemonade-rocmfpx:combined-b1050-gfx1151 \
+  -t fpx-lemon:combined-b1050-gfx1151 \
   -f forks/rocmfpx-heretek/Dockerfile forks/rocmfpx-heretek
 ```
 
@@ -126,13 +126,13 @@ runtime libraries it was built with, so this image uses the common runtime base.
 
 ```sh
 docker build \
-  --build-arg BASE_IMAGE=lemonade-runtime:lemonade-v11.9.0 \
+  --build-arg BASE_IMAGE=lemon-base:lemonade-v11.9.0 \
   --build-arg CACHYLLAMA_VERSION=b1036 \
   --build-arg CACHYLLAMA_ROCM_ASSET=cachy-llama-b1036-ubuntu-rocm-gfx1151-x64.zip \
   --build-arg CACHYLLAMA_ROCM_SHA256=b56cf63a6895f03173b7a2e4389ea2266241ade3c87ab6557cb14909f02c75b4 \
   --build-arg CACHYLLAMA_VULKAN_ASSET=cachy-llama-bin-ubuntu-vulkan-x64.tar.gz \
   --build-arg CACHYLLAMA_VULKAN_SHA256=7241a3611f3bbea1e3a852178f73ed8376017c21fce5c116094cc8380e476604 \
-  -t lemonade-cachyllama:combined-b1036-gfx1151 \
+  -t cachy-lemon:combined-b1036-gfx1151 \
   -f forks/cachyllama-heretek/Dockerfile forks/cachyllama-heretek
 ```
 
@@ -144,11 +144,11 @@ and compute its sha256 yourself.
 
 ```sh
 docker build \
-  --build-arg BASE_IMAGE=lemonade-runtime:lemonade-v11.9.0 \
+  --build-arg BASE_IMAGE=lemon-base:lemonade-v11.9.0 \
   --build-arg CACHYLLAMA_VERSION=b1036 \
   --build-arg CACHYLLAMA_ASSET=cachy-llama-bin-ubuntu-vulkan-x64.tar.gz \
   --build-arg CACHYLLAMA_SHA256=7241a3611f3bbea1e3a852178f73ed8376017c21fce5c116094cc8380e476604 \
-  -t lemonade-cachyllama:vulkan-b1036 \
+  -t cachy-lemon:vulkan-b1036 \
   -f forks/cachyllama-heretek/Dockerfile.vulkan .
 ```
 
@@ -156,17 +156,17 @@ docker build \
 
 [AtomicBot-ai/atomic-llama-cpp-turboquant](https://github.com/AtomicBot-ai/atomic-llama-cpp-turboquant)
 publishes one tarball per backend. Its ROCm tarball requires ROCm libraries
-from the container, so the combined image uses `lemonade-rocm-runtime`.
+from the container, so the combined image uses `rocm-lemon`.
 
 ```sh
 docker build \
-  --build-arg BASE_IMAGE=lemonade-rocm-runtime:rocm-7.2.1 \
+  --build-arg BASE_IMAGE=rocm-lemon:rocm-7.2.1 \
   --build-arg TURBOQUANT_VERSION=b10269-1.6.0 \
   --build-arg TURBOQUANT_ROCM_ASSET=llama-turboquant-linux-x64-rocm.tar.gz \
   --build-arg TURBOQUANT_ROCM_SHA256=e7758e3191827460de13976284160878d02920acb17d54007bd548521def7dc9 \
   --build-arg TURBOQUANT_VULKAN_ASSET=llama-turboquant-linux-x64-vulkan.tar.gz \
   --build-arg TURBOQUANT_VULKAN_SHA256=a0a3bc7b067fbac5e402ff3d603c50eaeffe505c5f576e6affb98ecaa9706aa3 \
-  -t lemonade-atomic-turboquant:combined-b10269-1.6.0 \
+  -t atomic-lemon:combined-b10269-1.6.0 \
   -f forks/atomic-turboquant/Dockerfile forks/atomic-turboquant
 ```
 
@@ -174,11 +174,11 @@ docker build \
 
 ```sh
 docker build \
-  --build-arg BASE_IMAGE=lemonade-runtime:lemonade-v11.9.0 \
+  --build-arg BASE_IMAGE=lemon-base:lemonade-v11.9.0 \
   --build-arg TURBOQUANT_VERSION=b10269-1.6.0 \
   --build-arg TURBOQUANT_ASSET=llama-turboquant-linux-x64-vulkan.tar.gz \
   --build-arg TURBOQUANT_SHA256=a0a3bc7b067fbac5e402ff3d603c50eaeffe505c5f576e6affb98ecaa9706aa3 \
-  -t lemonade-atomic-turboquant:vulkan-b10269-1.6.0 \
+  -t atomic-lemon:vulkan-b10269-1.6.0 \
   -f forks/atomic-turboquant/Dockerfile.vulkan .
 ```
 
@@ -215,8 +215,8 @@ keys, cache scopes, and pinned upstream build args/checksums.
   large because they download ROCm/fork archives, so PRs skip them by default;
   maintainers can run the workflow manually with `full_build=true`.
 - **Publish container images** runs on manual dispatch and pushed repository
-  version tags matching `v*`. It publishes `lemonade-runtime` first, then
-  `lemonade-rocm-runtime` from the runtime digest, then derived images from
+  version tags matching `v*`. It publishes `lemon-base` first, then
+  `rocm-lemon` from the runtime digest, then derived images from
   the exact dependency digest declared by the manifest. It uses `GITHUB_TOKEN`
   for GHCR, per-image GitHub Actions cache scopes, OCI labels, provenance, and
   SBOM attestations. It does not publish `latest`.
@@ -225,25 +225,25 @@ Default package/tag scheme:
 
 | Image | Package | Default tag | Repo-release tag example |
 | --- | --- | --- | --- |
-| Common runtime | `ghcr.io/${OWNER}/lemonade-runtime` | `lemonade-v11.9.0` | `v1.0.0-lemonade-v11.9.0` |
-| ROCm runtime | `ghcr.io/${OWNER}/lemonade-rocm-runtime` | `rocm-7.2.1` | `v1.0.0-rocm-7.2.1` |
-| Atomic TurboQuant combined | `ghcr.io/${OWNER}/lemonade-atomic-turboquant` | `combined-b10269-1.6.0` | `v1.0.0-combined-b10269-1.6.0` |
-| Atomic TurboQuant Vulkan-only | `ghcr.io/${OWNER}/lemonade-atomic-turboquant` | `vulkan-b10269-1.6.0` | `v1.0.0-vulkan-b10269-1.6.0` |
-| CachyLlama combined | `ghcr.io/${OWNER}/lemonade-cachyllama` | `combined-b1036-gfx1151` | `v1.0.0-combined-b1036-gfx1151` |
-| CachyLlama Vulkan-only | `ghcr.io/${OWNER}/lemonade-cachyllama` | `vulkan-b1036` | `v1.0.0-vulkan-b1036` |
-| ROCmFPX combined | `ghcr.io/${OWNER}/lemonade-rocmfpx` | `combined-b1050-gfx1151` | `v1.0.0-combined-b1050-gfx1151` |
+| Common runtime | `ghcr.io/${OWNER}/lemon-base` | `lemonade-v11.9.0` | `v1.0.0-lemonade-v11.9.0` |
+| ROCm runtime | `ghcr.io/${OWNER}/rocm-lemon` | `rocm-7.2.1` | `v1.0.0-rocm-7.2.1` |
+| Atomic TurboQuant combined | `ghcr.io/${OWNER}/atomic-lemon` | `combined-b10269-1.6.0` | `v1.0.0-combined-b10269-1.6.0` |
+| Atomic TurboQuant Vulkan-only | `ghcr.io/${OWNER}/atomic-lemon` | `vulkan-b10269-1.6.0` | `v1.0.0-vulkan-b10269-1.6.0` |
+| CachyLlama combined | `ghcr.io/${OWNER}/cachy-lemon` | `combined-b1036-gfx1151` | `v1.0.0-combined-b1036-gfx1151` |
+| CachyLlama Vulkan-only | `ghcr.io/${OWNER}/cachy-lemon` | `vulkan-b1036` | `v1.0.0-vulkan-b1036` |
+| ROCmFPX combined | `ghcr.io/${OWNER}/fpx-lemon` | `combined-b1050-gfx1151` | `v1.0.0-combined-b1050-gfx1151` |
 
 Example pulls:
 
 ```sh
 OWNER=<github-owner>
-docker pull ghcr.io/${OWNER}/lemonade-runtime:lemonade-v11.9.0
-docker pull ghcr.io/${OWNER}/lemonade-rocm-runtime:rocm-7.2.1
-docker pull ghcr.io/${OWNER}/lemonade-atomic-turboquant:combined-b10269-1.6.0
-docker pull ghcr.io/${OWNER}/lemonade-atomic-turboquant:vulkan-b10269-1.6.0
-docker pull ghcr.io/${OWNER}/lemonade-cachyllama:combined-b1036-gfx1151
-docker pull ghcr.io/${OWNER}/lemonade-cachyllama:vulkan-b1036
-docker pull ghcr.io/${OWNER}/lemonade-rocmfpx:combined-b1050-gfx1151
+docker pull ghcr.io/${OWNER}/lemon-base:lemonade-v11.9.0
+docker pull ghcr.io/${OWNER}/rocm-lemon:rocm-7.2.1
+docker pull ghcr.io/${OWNER}/atomic-lemon:combined-b10269-1.6.0
+docker pull ghcr.io/${OWNER}/atomic-lemon:vulkan-b10269-1.6.0
+docker pull ghcr.io/${OWNER}/cachy-lemon:combined-b1036-gfx1151
+docker pull ghcr.io/${OWNER}/cachy-lemon:vulkan-b1036
+docker pull ghcr.io/${OWNER}/fpx-lemon:combined-b1050-gfx1151
 ```
 
 To publish a repository release build:
@@ -281,7 +281,7 @@ Base image updates are handled by the updater workflow instead.
 **Update pinned dependencies** (`.github/workflows/update-dependencies.yml`)
 runs every Monday at 06:30 UTC and on manual dispatch. It calls
 `.github/scripts/update_dependencies.py` (Python standard library only, no
-third-party dependencies, no extra secrets — it uses the automatic
+third-party dependencies, no extra secrets â€” it uses the automatic
 `GITHUB_TOKEN` and needs only `contents: write` + `pull-requests: write`).
 
 Per run it:
@@ -324,7 +324,7 @@ pattern. Limitations to be aware of:
 - **Exactly one match, or the run fails.** Zero matches or two matches is a
   hard error that lists the release's available assets. The updater never
   guesses an asset, reuses an old checksum, or falls back to a sidecar
-  `.sha256` file — checksums are always computed from the bytes it downloaded.
+  `.sha256` file â€” checksums are always computed from the bytes it downloaded.
 - **Renames need a config change.** If upstream changes its asset naming
   scheme, update `asset_pattern` in the manifest; the failure message tells
   you what the release actually contains.

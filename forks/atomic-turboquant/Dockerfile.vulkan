@@ -1,19 +1,19 @@
 # Vulkan variant of the atomic-llama-cpp-turboquant fork image.
 #
 # Vulkan needs no ROCm userspace runtime, so this variant builds FROM the
-# lightweight lemonade-runtime base rather than lemonade-rocm-runtime. Build
+# lightweight lemon-base base rather than rocm-lemon. Build
 # with the repo root as context, e.g.:
 #
 #   docker build \
 #     -f forks/atomic-turboquant/Dockerfile.vulkan \
-#     -t lemonade-atomic-turboquant:vulkan-<version> \
+#     -t atomic-lemon:vulkan-<version> \
 #     .
 #
 # No version/asset/checksum defaults are hardcoded on purpose -- pass all
 # three as build args, pinned to a release you have verified yourself. Look
 # up the exact vulkan asset filename for the release you want and compute
 # its sha256 yourself; do not reuse any ROCm checksum for this variant.
-ARG BASE_IMAGE=lemonade-runtime:lemonade-v11.9.0
+ARG BASE_IMAGE=lemon-base:lemonade-v11.9.0
 FROM ${BASE_IMAGE}
 
 USER root

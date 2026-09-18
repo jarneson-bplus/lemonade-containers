@@ -5,7 +5,7 @@
 # and the config-seeding entrypoint inherited by all fork images.
 #
 # Build:
-#   docker build -t lemonade-runtime:lemonade-v11.9.0 -f base/Dockerfile base
+#   docker build -t lemon-base:lemonade-v11.9.0 -f base/Dockerfile base
 ARG BASE_IMAGE=ghcr.io/lemonade-sdk/lemonade-server:v11.9.0
 FROM ${BASE_IMAGE}
 

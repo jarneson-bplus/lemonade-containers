@@ -7,7 +7,7 @@
 #
 # This Dockerfile builds the combined ROCm+Vulkan image. Atomic's ROCm asset
 # does not bundle full ROCm userspace, so this image intentionally layers on
-# the lemonade-rocm-runtime base. It downloads the separately published ROCm
+# the rocm-lemon base. It downloads the separately published ROCm
 # and Vulkan tarballs into distinct directories so users can switch
 # `llamacpp.backend` from `rocm` to `vulkan` in the seeded config.json without
 # rebuilding the image. See Dockerfile.vulkan for the smaller Vulkan-only image.
@@ -23,12 +23,12 @@
 #     --build-arg TURBOQUANT_ROCM_SHA256=e7758e3191827460de13976284160878d02920acb17d54007bd548521def7dc9 \
 #     --build-arg TURBOQUANT_VULKAN_ASSET=llama-turboquant-linux-x64-vulkan.tar.gz \
 #     --build-arg TURBOQUANT_VULKAN_SHA256=a0a3bc7b067fbac5e402ff3d603c50eaeffe505c5f576e6affb98ecaa9706aa3 \
-#     -t lemonade-atomic-turboquant:combined-b10269-1.6.0 \
+#     -t atomic-lemon:combined-b10269-1.6.0 \
 #     -f forks/atomic-turboquant/Dockerfile forks/atomic-turboquant
 #
 # For any other release/backend asset, look up the exact filename and compute
 # its sha256 yourself -- do not reuse the checksums above for different files.
-ARG BASE_IMAGE=lemonade-rocm-runtime:rocm-7.2.1
+ARG BASE_IMAGE=rocm-lemon:rocm-7.2.1
 FROM ${BASE_IMAGE}
 
 USER root

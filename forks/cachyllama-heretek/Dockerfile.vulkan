@@ -1,17 +1,17 @@
 # Vulkan-only variant of the CachyLLama-BUILDER fork image.
 #
 # Vulkan needs no ROCm userspace runtime, so this variant builds FROM the
-# lightweight lemonade-runtime base rather than lemonade-rocm-runtime. Build
+# lightweight lemon-base base rather than rocm-lemon. Build
 # with the repo root as context, e.g.:
 #
 #   docker build \
 #     -f forks/cachyllama-heretek/Dockerfile.vulkan \
-#     -t lemonade-cachyllama:vulkan-<version> \
+#     -t cachy-lemon:vulkan-<version> \
 #     .
 #
 # No version/asset/checksum defaults are hardcoded on purpose -- pass all
 # three as build args, pinned to a release you have verified yourself.
-ARG BASE_IMAGE=lemonade-runtime:lemonade-v11.9.0
+ARG BASE_IMAGE=lemon-base:lemonade-v11.9.0
 FROM ${BASE_IMAGE}
 
 USER root

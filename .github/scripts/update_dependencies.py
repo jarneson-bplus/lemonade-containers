@@ -460,10 +460,10 @@ def verify_manifest(manifest: dict[str, Any]) -> None:
     if build_args_map(runtime).get("BASE_IMAGE") != lemonade["image"]:
         raise UpdateError("runtime BASE_IMAGE must equal upstream.lemonade_server.image")
 
-    runtime_ref = f"lemonade-runtime:{runtime['default_tag']}"
+    runtime_ref = f"lemon-base:{runtime['default_tag']}"
     for image in manifest["images"]:
         base_image = build_args_map(image).get("BASE_IMAGE")
-        if base_image and base_image.startswith("lemonade-runtime:") and base_image != runtime_ref:
+        if base_image and base_image.startswith("lemon-base:") and base_image != runtime_ref:
             raise UpdateError(
                 f"Image '{image['key']}' pins stale base {base_image}, expected {runtime_ref}"
             )

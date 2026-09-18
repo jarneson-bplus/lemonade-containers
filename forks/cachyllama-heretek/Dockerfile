@@ -9,7 +9,7 @@
 # directory -- copying just the binary will fail to find its libs at runtime.
 #
 # This Dockerfile builds the combined ROCm+Vulkan image. It intentionally uses
-# the lightweight lemonade-runtime base, not lemonade-rocm-runtime: Heretek's
+# the lightweight lemon-base base, not rocm-lemon: Heretek's
 # ROCm archives bundle their required ROCm runtime libraries next to
 # `llama-server` with $ORIGIN RPATH, and /opt/rocm LD_LIBRARY_PATH could shadow
 # those moving TheRock nightly libraries. The ROCm and Vulkan archives are
@@ -27,13 +27,13 @@
 #     --build-arg CACHYLLAMA_ROCM_SHA256=b56cf63a6895f03173b7a2e4389ea2266241ade3c87ab6557cb14909f02c75b4 \
 #     --build-arg CACHYLLAMA_VULKAN_ASSET=cachy-llama-bin-ubuntu-vulkan-x64.tar.gz \
 #     --build-arg CACHYLLAMA_VULKAN_SHA256=7241a3611f3bbea1e3a852178f73ed8376017c21fce5c116094cc8380e476604 \
-#     -t lemonade-cachyllama:combined-b1036-gfx1151 \
+#     -t cachy-lemon:combined-b1036-gfx1151 \
 #     -f forks/cachyllama-heretek/Dockerfile forks/cachyllama-heretek
 #
 # For any other GPU target or release, look up the exact asset filename and
 # compute its sha256 yourself from the actual release download -- do not
 # reuse the checksums above for different assets.
-ARG BASE_IMAGE=lemonade-runtime:lemonade-v11.9.0
+ARG BASE_IMAGE=lemon-base:lemonade-v11.9.0
 FROM ${BASE_IMAGE}
 
 USER root
