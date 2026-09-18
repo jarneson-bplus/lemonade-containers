@@ -247,13 +247,13 @@
       "package": "lemonade-rocmfpx",
       "dockerfile": "forks/rocmfpx-heretek/Dockerfile",
       "context": "forks/rocmfpx-heretek",
-      "default_tag": "combined-b1045-gfx1151",
-      "cache_scope": "rocmfpx-heretek-combined-b1045-gfx1151",
+      "default_tag": "combined-b1050-gfx1151",
+      "cache_scope": "rocmfpx-heretek-combined-b1050-gfx1151",
       "depends_on": "runtime",
       "build_args": [
-        "ROCMFPX_VERSION=b1045",
-        "ROCMFPX_ASSET=kingjones-rocmfpx-b1045-ubuntu-rocm-gfx1151-x64.zip",
-        "ROCMFPX_SHA256=75ecc080e75e59f55c047eff9023d41ff0c085fc2d8ac83cb953ebd810e51b28"
+        "ROCMFPX_VERSION=b1050",
+        "ROCMFPX_ASSET=kingjones-rocmfpx-b1050-ubuntu-rocm-gfx1151-x64.zip",
+        "ROCMFPX_SHA256=2d39092220dadbf3cbc093274146b115af448f514a102a2347bd0a06e6470f9f"
       ]
     }
   ]
