@@ -95,22 +95,21 @@ built against moving TheRock nightly versions.
 
 ## Choosing a fork
 
-Use this guide to choose the package and tag variant that matches the backend
-and GPU target you need. The table describes only variants currently defined
-in `.github/image-matrix.json` and the behavior documented by their
-Dockerfiles.
+Choose by the inference features you want first, then use backend availability
+to filter the options. The package variants shown are the ones currently
+defined in `.github/image-matrix.json`.
 
-| Package / variant | ROCm / HIP | Vulkan | CPU asset in current matrix | GPU target shown in matrix | ROCm runtime source | Image composition and notable quirk |
-| --- | --- | --- | --- | --- | --- | --- |
-| `atomic-lemon:combined-*` | ✅ Separate ROCm asset | ✅ Separate Vulkan asset | ❌ | Generic release assets; no target encoded | `rocm-lemon` supplies ROCm userspace | Bundles both backends for runtime switching; larger than its Vulkan-only counterpart because it downloads both assets. |
-| `atomic-lemon:vulkan-*` | ❌ | ✅ | ❌ | Generic Vulkan asset; no target encoded | `lemon-base` | Vulkan-only image; avoids the ROCm runtime layer and is the smaller Atomic variant. |
-| `cachy-lemon:combined-*-gfx1151` | ✅ `gfx1151` asset shown | ✅ Generic Vulkan asset | ❌ | `gfx1151` shown; other targets are documented as available from the release | Bundled in the ROCm archive; uses `lemon-base` | Bundles both backends for runtime switching. The archive is extracted whole so its sibling libraries and `$ORIGIN` RPATH remain available. |
-| `cachy-lemon:vulkan-*` | ❌ | ✅ | ❌ | Generic Vulkan asset; no target encoded | Not needed; uses `lemon-base` | Vulkan-only image; avoids the ROCm runtime layer and is the smaller Cachy variant. |
-| `fpx-lemon:combined-*-gfx1151` | ✅ HIP | ✅ Same `llama-server` path | ❌ | `gfx1151` shown | Bundled in the ROCmFPX archive; uses `lemon-base` | The current Linux asset enables both backends, but no standalone Vulkan-only artifact is published; both config entries therefore point to the same binary. |
+| Fork / package | Why you would choose it | Distinctive upstream focus | ROCm / HIP | Vulkan | Image variants in this repo |
+| --- | --- | --- | --- | --- | --- |
+| [Atomic TurboQuant](https://github.com/AtomicBot-ai/atomic-llama-cpp-turboquant) / `atomic-lemon` | You want aggressive KV-cache and model-weight compression, especially for fitting longer contexts or larger models into limited memory. | WHT-rotated `turbo3` / `turbo4` KV cache, `TQ3_1S` / `TQ4_1S` weight formats, and experimental model-specific speculative decoding such as Gemma MTP and Qwen NextN. | ✅ | ✅ | Combined ROCm+Vulkan and Vulkan-only |
+| [CachyLlama](https://github.com/Heretek-AI/CachyLlama-BUILDER) / `cachy-lemon` | You run large or MoE models on memory-rich AMD APUs and want reuse of cached work across long or repeated prompts. | Persistent on-disk KV cache, MoE expert residency, Lightning Indexer, and dynamic prompt-cache reuse; the builder also targets integration with the `llama-ai` APU profile solver. | ✅ | ✅ | Combined ROCm+Vulkan and Vulkan-only |
+| [kingjones30 ROCmFPX](https://github.com/kingjones30/ROCmFPX) via [ROCmFPX-BUILDER](https://github.com/Heretek-AI/ROCmFPX-BUILDER) / `fpx-lemon` | You want experimental AMD-first low-bit model-weight formats or need one of the additional model architectures carried by this ROCmFPX fork. | ROCmFP2/3/4/6/8 formats with native AMD paths, plus seven architectures not present in upstream ROCmFPX: Mellum, Instella, Bailing Hybrid, Muse Glimmer, Qwen4Exp, Zaya, and Cohere2MoE. | ✅ | ✅ | Combined HIP+Vulkan |
 
-The matrix currently defines no CPU image for these packages. For exact
-version, asset, and checksum values, use the image matrix and the build
-examples below rather than inferring a tag from the fork name.
+The CachyLlama builder documents its engine features and links to
+`fewtarius/CachyLlama` and `fewtarius/llama-ai`, but those linked repositories
+are not currently publicly accessible. The matrix defines no CPU image for
+these packages. For exact versions, assets, GPU targets, and checksums, use the
+image matrix and build examples below.
 
 ## Fork builds
 
