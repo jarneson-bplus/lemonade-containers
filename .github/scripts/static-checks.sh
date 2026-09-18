@@ -35,6 +35,8 @@ done < <(find base forks -name '*.json' -print0)
 
 sh -n base/docker-entrypoint.sh
 
+.github/scripts/check-gpu-groups.sh
+
 if grep -RIn --include='Dockerfile*' --include='*.yml' --include='*.yaml' --include='*.json' \
   'lemonade-server:[l]atest' base forks .github; then
   echo "Floating Lemonade Server image tags are not allowed; pin an explicit release tag." >&2
