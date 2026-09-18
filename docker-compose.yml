@@ -21,14 +21,14 @@ services:
   # the Linux build is compiled with both GGML_HIP and GGML_VULKAN enabled, so
   # its config exposes the same llama-server path for both backends. The image
   # uses the common runtime base because Heretek bundles its ROCm libraries.
-  lemonade-rocmfpx-kingjones30-combined:
-    image: ${IMAGE_PREFIX:-}lemonade-rocmfpx:combined-b1050-gfx1151
+  fpx-lemon-kingjones30-combined:
+    image: ${IMAGE_PREFIX:-}fpx-lemon:combined-b1050-gfx1151
     ports:
       # Prefer binding to 127.0.0.1 over 0.0.0.0 unless you specifically need
       # to expose the API to other hosts on your network.
       - "127.0.0.1:13305:13305"
     volumes:
-      - ./config/lemonade-rocmfpx-kingjones30-combined:/opt/lemonade/.config/lemonade
+      - ./config/fpx-lemon-kingjones30-combined:/opt/lemonade/.config/lemonade
       - lemonade-cache:/opt/lemonade/.cache/huggingface
       - lemonade-llama:/opt/lemonade/llama
       - lemonade-data:/opt/lemonade/.cache/lemonade
@@ -43,12 +43,12 @@ services:
   # Combined ROCm+Vulkan build: fewtarius/CachyLLama via
   # Heretek-AI/CachyLLama-BUILDER. The image uses the common runtime base
   # because Heretek bundles its ROCm libraries.
-  lemonade-cachyllama-combined:
-    image: ${IMAGE_PREFIX:-}lemonade-cachyllama:combined-b1036-gfx1151
+  cachy-lemon-combined:
+    image: ${IMAGE_PREFIX:-}cachy-lemon:combined-b1036-gfx1151
     ports:
       - "127.0.0.1:13306:13305"
     volumes:
-      - ./config/lemonade-cachyllama-combined:/opt/lemonade/.config/lemonade
+      - ./config/cachy-lemon-combined:/opt/lemonade/.config/lemonade
       - lemonade-cache:/opt/lemonade/.cache/huggingface
       - lemonade-llama:/opt/lemonade/llama
       - lemonade-data:/opt/lemonade/.cache/lemonade
@@ -62,12 +62,12 @@ services:
 
   # Vulkan-only build: fewtarius/CachyLLama via Heretek-AI/CachyLLama-BUILDER.
   # No ROCm devices needed; Vulkan talks to the GPU through the normal render node.
-  lemonade-cachyllama-vulkan:
-    image: ${IMAGE_PREFIX:-}lemonade-cachyllama:vulkan-b1036
+  cachy-lemon-vulkan:
+    image: ${IMAGE_PREFIX:-}cachy-lemon:vulkan-b1036
     ports:
       - "127.0.0.1:13307:13305"
     volumes:
-      - ./config/lemonade-cachyllama-vulkan:/opt/lemonade/.config/lemonade
+      - ./config/cachy-lemon-vulkan:/opt/lemonade/.config/lemonade
       - lemonade-cache:/opt/lemonade/.cache/huggingface
       - lemonade-llama:/opt/lemonade/llama
       - lemonade-data:/opt/lemonade/.cache/lemonade
@@ -79,13 +79,13 @@ services:
     restart: unless-stopped
 
   # Combined ROCm+Vulkan build: AtomicBot-ai/atomic-llama-cpp-turboquant.
-  # Atomic's ROCm tarball needs the separate lemonade-rocm-runtime base.
-  lemonade-atomic-turboquant-combined:
-    image: ${IMAGE_PREFIX:-}lemonade-atomic-turboquant:combined-b10269-1.6.0
+  # Atomic's ROCm tarball needs the separate rocm-lemon base.
+  atomic-lemon-combined:
+    image: ${IMAGE_PREFIX:-}atomic-lemon:combined-b10269-1.6.0
     ports:
       - "127.0.0.1:13308:13305"
     volumes:
-      - ./config/lemonade-atomic-turboquant-combined:/opt/lemonade/.config/lemonade
+      - ./config/atomic-lemon-combined:/opt/lemonade/.config/lemonade
       - lemonade-cache:/opt/lemonade/.cache/huggingface
       - lemonade-llama:/opt/lemonade/llama
       - lemonade-data:/opt/lemonade/.cache/lemonade
@@ -99,12 +99,12 @@ services:
 
   # Vulkan-only build: AtomicBot-ai/atomic-llama-cpp-turboquant. No ROCm devices
   # needed; Vulkan talks to the GPU through the normal render node.
-  lemonade-atomic-turboquant-vulkan:
-    image: ${IMAGE_PREFIX:-}lemonade-atomic-turboquant:vulkan-b10269-1.6.0
+  atomic-lemon-vulkan:
+    image: ${IMAGE_PREFIX:-}atomic-lemon:vulkan-b10269-1.6.0
     ports:
       - "127.0.0.1:13309:13305"
     volumes:
-      - ./config/lemonade-atomic-turboquant-vulkan:/opt/lemonade/.config/lemonade
+      - ./config/atomic-lemon-vulkan:/opt/lemonade/.config/lemonade
       - lemonade-cache:/opt/lemonade/.cache/huggingface
       - lemonade-llama:/opt/lemonade/llama
       - lemonade-data:/opt/lemonade/.cache/lemonade

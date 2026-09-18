@@ -1,15 +1,15 @@
 # ROCm userspace runtime base for fork images that do not bundle ROCm libs.
 #
-# This builds FROM the lightweight lemonade-runtime base and adds ROCm 7.2.1
+# This builds FROM the lightweight lemon-base base and adds ROCm 7.2.1
 # userspace libraries under /opt/rocm. Use it only for upstream distributions
 # that require container-provided ROCm libraries.
 #
 # Build:
 #   docker build \
-#     --build-arg BASE_IMAGE=lemonade-runtime:lemonade-v11.9.0 \
-#     -t lemonade-rocm-runtime:rocm-7.2.1 \
+#     --build-arg BASE_IMAGE=lemon-base:lemonade-v11.9.0 \
+#     -t rocm-lemon:rocm-7.2.1 \
 #     -f base/Dockerfile.rocm base
-ARG BASE_IMAGE=lemonade-runtime:lemonade-v11.9.0
+ARG BASE_IMAGE=lemon-base:lemonade-v11.9.0
 FROM ${BASE_IMAGE}
 
 ARG ROCM_VERSION=7.2.1

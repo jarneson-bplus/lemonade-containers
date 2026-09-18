@@ -13,8 +13,8 @@
 # a standalone Linux Vulkan-only artifact. The paired config.default.json
 # therefore exposes the same llama-server path as both rocm_bin and vulkan_bin.
 #
-# This image intentionally uses the lightweight lemonade-runtime base, not
-# lemonade-rocm-runtime: Heretek's ROCm archives bundle their required ROCm
+# This image intentionally uses the lightweight lemon-base base, not
+# rocm-lemon: Heretek's ROCm archives bundle their required ROCm
 # runtime libraries next to `llama-server` with $ORIGIN RPATH, and /opt/rocm
 # LD_LIBRARY_PATH could shadow those moving TheRock nightly libraries.
 #
@@ -26,13 +26,13 @@
 #     --build-arg ROCMFPX_VERSION=b1050 \
 #     --build-arg ROCMFPX_ASSET=kingjones-rocmfpx-b1050-ubuntu-rocm-gfx1151-x64.zip \
 #     --build-arg ROCMFPX_SHA256=2d39092220dadbf3cbc093274146b115af448f514a102a2347bd0a06e6470f9f \
-#     -t lemonade-rocmfpx:combined-b1050-gfx1151 \
+#     -t fpx-lemon:combined-b1050-gfx1151 \
 #     -f forks/rocmfpx-heretek/Dockerfile forks/rocmfpx-heretek
 #
 # For any other variant/GPU target, look up the exact asset filename and
 # compute its sha256 yourself from the actual release download -- do not
 # reuse the checksum above for a different asset.
-ARG BASE_IMAGE=lemonade-runtime:lemonade-v11.9.0
+ARG BASE_IMAGE=lemon-base:lemonade-v11.9.0
 FROM ${BASE_IMAGE}
 
 USER root
